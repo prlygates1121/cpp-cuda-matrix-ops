@@ -6,7 +6,7 @@
 #include <omp.h>
 #include <math.h>
 #include <stdio.h>
-#include <cblas.h>
+//#include <cblas.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -101,7 +101,7 @@ void checkAcc() {
     Matrix *C_rkc_blocked = initMat(size, size);
     Matrix *C_rkc_blocked_AVX = initMat(size, size);
     Matrix *C_improved = initMat(size, size);
-    Matrix *C_OpenBLAS = initMat(size, size);
+//    Matrix *C_OpenBLAS = initMat(size, size);
 
     matmul_rck(A, B, C_rck);
     matmul_rck_trans(A, B, C_rck_trans);
@@ -124,7 +124,7 @@ void checkAcc() {
         error[5] += fabsf(C_rck->data[i] - C_rkc_blocked->data[i]);
         error[6] += fabsf(C_rck->data[i] - C_rkc_blocked_AVX->data[i]);
         error[7] += fabsf(C_rck->data[i] - C_improved->data[i]);
-        error[8] += fabsf(C_rck->data[i] - C_OpenBLAS->data[i]);
+//        error[8] += fabsf(C_rck->data[i] - C_OpenBLAS->data[i]);
     }
     // print the average error of each implementation method
     printf("The average error of matmul_rck_trans is %f\n", error[0] / (size * size));
@@ -148,7 +148,7 @@ void checkAcc() {
     freeMat(&C_rkc_blocked);
     freeMat(&C_rkc_blocked_AVX);
     freeMat(&C_improved);
-    freeMat(&C_OpenBLAS);
+//    freeMat(&C_OpenBLAS);
 }
 
 // merge four sub-matrices into a complete matrix using memcpy
@@ -557,10 +557,10 @@ bool matmul_improved(const Matrix * A, const Matrix * B, Matrix * C) {
     return true;
 }
 
-bool matmul_OpenBLAS(const Matrix * A, const Matrix * B, Matrix * C) {
-    CHECK("multiplication")
-    cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, A->row, B->col, A->col, 1, A->data, A->col, B->data, B->col, 0, C->data, C->col);
-    return true;
-}
+//bool matmul_OpenBLAS(const Matrix * A, const Matrix * B, Matrix * C) {
+//    CHECK("multiplication")
+//    cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, A->row, B->col, A->col, 1, A->data, A->col, B->data, B->col, 0, C->data, C->col);
+//    return true;
+//}
 
 
