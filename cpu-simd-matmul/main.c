@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include "operation.h"
 
-#define SIZE 2048
+#define SIZE 1024
 #define WARMUP 20
 
 int mod = 0;
@@ -35,7 +35,7 @@ int main() {
         fillMat(B);
         startTime = clock();
 
-        if (!matmul_rck_AVX_unroll_blocked(A, B, C)) {
+        if (!matmul_rkc_blocked(A, B, C)) {
             fprintf(stderr, "Error: \nFailed to perform No.%d computation (C).\n", i);
             freeMat(&A);
             freeMat(&B);

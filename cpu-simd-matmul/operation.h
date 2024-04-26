@@ -46,7 +46,7 @@ bool matmul_rkc_blocked_AVX(const Matrix * A, const Matrix * B, Matrix * C);
 
 bool matmul_improved(const Matrix * A, const Matrix * B, Matrix * C);
 
-//bool matmul_OpenBLAS(const Matrix * A, const Matrix * B, Matrix * C);
+bool matmul_OpenBLAS(const Matrix * A, const Matrix * B, Matrix * C);
 
 void fillMat(Matrix * matrix);
 

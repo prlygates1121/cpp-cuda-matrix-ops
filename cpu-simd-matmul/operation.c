@@ -6,7 +6,7 @@
 #include <omp.h>
 #include <math.h>
 #include <stdio.h>
-//#include <cblas.h>
+#include <cblas.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -101,7 +101,7 @@ void checkAcc() {
     Matrix *C_rkc_blocked = initMat(size, size);
     Matrix *C_rkc_blocked_AVX = initMat(size, size);
     Matrix *C_improved = initMat(size, size);
-//    Matrix *C_OpenBLAS = initMat(size, size);
+    Matrix *C_OpenBLAS = initMat(size, size);
 
     matmul_rck(A, B, C_rck);
     matmul_rck_trans(A, B, C_rck_trans);
@@ -112,7 +112,7 @@ void checkAcc() {
     matmul_rkc_blocked(A, B, C_rkc_blocked);
     matmul_rkc_blocked_AVX(A, B, C_rkc_blocked_AVX);
     matmul_improved(A, B, C_improved);
-    //matmul_OpenBLAS(A, B, C_OpenBLAS);
+    matmul_OpenBLAS(A, B, C_OpenBLAS);
 
     double error[10] = {0};
     for (size_t i = 0; i < size * size; i++) {
@@ -124,18 +124,19 @@ void checkAcc() {
         error[5] += fabsf(C_rck->data[i] - C_rkc_blocked->data[i]);
         error[6] += fabsf(C_rck->data[i] - C_rkc_blocked_AVX->data[i]);
         error[7] += fabsf(C_rck->data[i] - C_improved->data[i]);
-//        error[8] += fabsf(C_rck->data[i] - C_OpenBLAS->data[i]);
+        error[8] += fabsf(C_rck->data[i] - C_OpenBLAS->data[i]);
     }
     // print the average error of each implementation method
-    printf("The average error of matmul_rck_trans is %f\n", error[0] / (size * size));
-    printf("The average error of matmul_rck_AVX is %f\n", error[1] / (size * size));
-    printf("The average error of matmul_rck_AVX_unroll is %f\n", error[2] / (size * size));
-    printf("The average error of matmul_rck_AVX_unroll_blocked is %f\n", error[3] / (size * size));
-    printf("The average error of matmul_rkc is %f\n", error[4] / (size * size));
-    printf("The average error of matmul_rkc_blocked is %f\n", error[5] / (size * size));
-    printf("The average error of matmul_rkc_blocked_AVX is %f\n", error[6] / (size * size));
-    printf("The average error of matmul_improved is %f\n", error[7] / (size * size));
-    printf("The average error of matmul_OpenBLAS is %f\n", error[8] / (size * size));
+    printf("                                    Average error\n");
+    printf("matmul_rck_trans                     %f\n", error[0] / (size * size));
+    printf("matmul_rck_AVX                       %f\n", error[1] / (size * size));
+    printf("matmul_rck_AVX_unroll                %f\n", error[2] / (size * size));
+    printf("matmul_rck_AVX_unroll_blocked        %f\n", error[3] / (size * size));
+    printf("matmul_rkc                           %f\n", error[4] / (size * size));
+    printf("matmul_rkc_blocked                   %f\n", error[5] / (size * size));
+    printf("matmul_rkc_blocked_AVX               %f\n", error[6] / (size * size));
+    printf("matmul_improved                      %f\n", error[7] / (size * size));
+    printf("matmul_OpenBLAS                      %f\n", error[8] / (size * size));
 
     freeMat(&A);
     freeMat(&B);
@@ -148,7 +149,7 @@ void checkAcc() {
     freeMat(&C_rkc_blocked);
     freeMat(&C_rkc_blocked_AVX);
     freeMat(&C_improved);
-//    freeMat(&C_OpenBLAS);
+    freeMat(&C_OpenBLAS);
 }
 
 // merge four sub-matrices into a complete matrix using memcpy
@@ -557,10 +558,10 @@ bool matmul_improved(const Matrix * A, const Matrix * B, Matrix * C) {
     return true;
 }
 
-//bool matmul_OpenBLAS(const Matrix * A, const Matrix * B, Matrix * C) {
-//    CHECK("multiplication")
-//    cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, A->row, B->col, A->col, 1, A->data, A->col, B->data, B->col, 0, C->data, C->col);
-//    return true;
-//}
+bool matmul_OpenBLAS(const Matrix * A, const Matrix * B, Matrix * C) {
+    CHECK("multiplication")
+    cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, A->row, B->col, A->col, 1, A->data, A->col, B->data, B->col, 0, C->data, C->col);
+    return true;
+}
 
 
