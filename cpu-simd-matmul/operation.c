@@ -285,14 +285,12 @@ bool matmul_rck_trans(const Matrix * A, const Matrix * B, Matrix * C) {
         return false;
     }
     CHECK("multiplication")
-
     // transpose matrix B
     for (size_t r = 0; r < B->row; r++) {
         for (size_t c = 0; c < B->col; c++) {
             BT->data[c * B->col + r] = B->data[r * B->col + c];
         }
     }
-
     // multiply A and BT to get C
     for (size_t r = 0; r < A->row; r++) {
         for (size_t c = 0; c < B->col; c++) {
@@ -610,39 +608,11 @@ bool matmul_improved(const Matrix * A, const Matrix * B, Matrix * C) { // NOLINT
             !addMat(P3, P4, C3) ||
             !subMat(add8, add9, C4)) {
             fprintf(stderr, "Error in LINE %d, FUNCTION %s(): \nFailed to perform sMul due to memory allocation failure (for sub-matrices).\n",  __LINE__, __FUNCTION__);
-            freeMat(&A1);
-            freeMat(&A2);
-            freeMat(&A3);
-            freeMat(&A4);
-            freeMat(&B1);
-            freeMat(&B2);
-            freeMat(&B3);
-            freeMat(&B4);
-            freeMat(&C1);
-            freeMat(&C2);
-            freeMat(&C3);
-            freeMat(&C4);
-            freeMat(&P1);
-            freeMat(&P2);
-            freeMat(&P3);
-            freeMat(&P4);
-            freeMat(&P5);
-            freeMat(&P6);
-            freeMat(&P7);
-            freeMat(&add1);
-            freeMat(&add2);
-            freeMat(&add3);
-            freeMat(&add4);
-            freeMat(&add5);
-            freeMat(&add6);
-            freeMat(&add7);
-            freeMat(&add8);
-            freeMat(&add9);
-            freeMat(&sub1);
-            freeMat(&sub2);
-            freeMat(&sub3);
-            freeMat(&sub4);
-            freeMat(&sub5);
+            freeMat(&A1); freeMat(&A2); freeMat(&A3); freeMat(&A4); freeMat(&B1); freeMat(&B2); freeMat(&B3);
+            freeMat(&B4); freeMat(&C1); freeMat(&C2); freeMat(&C3); freeMat(&C4); freeMat(&P1); freeMat(&P2);
+            freeMat(&P3); freeMat(&P4); freeMat(&P5); freeMat(&P6); freeMat(&P7); freeMat(&add1); freeMat(&add2);
+            freeMat(&add3); freeMat(&add4); freeMat(&add5); freeMat(&add6); freeMat(&add7); freeMat(&add8);
+            freeMat(&add9); freeMat(&sub1); freeMat(&sub2); freeMat(&sub3); freeMat(&sub4);  freeMat(&sub5);
             return false;
         }
 
@@ -650,39 +620,11 @@ bool matmul_improved(const Matrix * A, const Matrix * B, Matrix * C) { // NOLINT
         merge_memcpy(C1, C2, C3, C4, C);
 
         // free memory for all sub-matrices
-        freeMat(&A1);
-        freeMat(&A2);
-        freeMat(&A3);
-        freeMat(&A4);
-        freeMat(&B1);
-        freeMat(&B2);
-        freeMat(&B3);
-        freeMat(&B4);
-        freeMat(&C1);
-        freeMat(&C2);
-        freeMat(&C3);
-        freeMat(&C4);
-        freeMat(&P1);
-        freeMat(&P2);
-        freeMat(&P3);
-        freeMat(&P4);
-        freeMat(&P5);
-        freeMat(&P6);
-        freeMat(&P7);
-        freeMat(&add1);
-        freeMat(&add2);
-        freeMat(&add3);
-        freeMat(&add4);
-        freeMat(&add5);
-        freeMat(&add6);
-        freeMat(&add7);
-        freeMat(&add8);
-        freeMat(&add9);
-        freeMat(&sub1);
-        freeMat(&sub2);
-        freeMat(&sub3);
-        freeMat(&sub4);
-        freeMat(&sub5);
+        freeMat(&A1); freeMat(&A2); freeMat(&A3); freeMat(&A4); freeMat(&B1); freeMat(&B2); freeMat(&B3);
+        freeMat(&B4); freeMat(&C1); freeMat(&C2); freeMat(&C3); freeMat(&C4); freeMat(&P1); freeMat(&P2);
+        freeMat(&P3); freeMat(&P4); freeMat(&P5); freeMat(&P6); freeMat(&P7); freeMat(&add1); freeMat(&add2);
+        freeMat(&add3); freeMat(&add4); freeMat(&add5); freeMat(&add6); freeMat(&add7); freeMat(&add8); freeMat(&add9);
+        freeMat(&sub1); freeMat(&sub2); freeMat(&sub3); freeMat(&sub4); freeMat(&sub5);
     }
     return true;
 }
