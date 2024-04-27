@@ -70,7 +70,7 @@ Matrix * initMat(size_t row, size_t col) {
 // fill the matrix with random values
 void fillMat(Matrix * matrix) {
     for (size_t i = 0; i < matrix->col * matrix->row; i++) {
-        matrix->data[i] = (float)((double)rand() / (double)RAND_MAX - (float)1 / 2) * 10;
+        matrix->data[i] = (float)((double)rand() / (double)RAND_MAX - (float)1 / 2) * 10; // NOLINT(*-msc50-cpp)
     }
 }
 
@@ -89,65 +89,116 @@ void checkAcc() {
     int size = 128;
     Matrix *A = initMat(size, size);
     Matrix *B = initMat(size, size);
+    if (A == NULL || B == NULL) {
+        fprintf(stderr, "Error in LINE %d, FUNCTION %s(): \nFailed to perform checkAcc due to a NULL input (Matrix).\n",  __LINE__, __FUNCTION__);
+        freeMat(&A);
+        freeMat(&B);
+        return;
+    }
     fillMat(A);
     fillMat(B);
 
     Matrix *C_rck = initMat(size, size);
     Matrix *C_rck_trans = initMat(size, size);
-    Matrix *C_rck_AVX = initMat(size, size);
-    Matrix *C_rck_AVX_unroll = initMat(size, size);
-    Matrix *C_rck_AVX_unroll_blocked = initMat(size, size);
+    Matrix *C_rck_intrinsics = initMat(size, size);
+    Matrix *C_rck_intrinsics_unroll = initMat(size, size);
+    Matrix *C_rck_intrinsics_unroll_blocked = initMat(size, size);
     Matrix *C_rkc = initMat(size, size);
+    Matrix *C_rkc_intrinsics = initMat(size, size);
+    Matrix *C_rkc_intrinsics_unroll = initMat(size, size);
+    Matrix *C_rkc_intrinsics_unroll_blocked = initMat(size, size);
     Matrix *C_rkc_blocked = initMat(size, size);
-    Matrix *C_rkc_blocked_AVX = initMat(size, size);
+    Matrix *C_rkc_blocked_omp = initMat(size, size);
     Matrix *C_improved = initMat(size, size);
     Matrix *C_OpenBLAS = initMat(size, size);
 
+    if (C_rck == NULL || C_rck_trans == NULL || C_rck_intrinsics == NULL || C_rck_intrinsics_unroll == NULL || C_rck_intrinsics_unroll_blocked == NULL ||
+        C_rkc == NULL || C_rkc_intrinsics == NULL || C_rkc_intrinsics_unroll == NULL || C_rkc_blocked == NULL || C_rkc_blocked_omp == NULL || C_rkc_intrinsics_unroll_blocked == NULL ||
+        C_improved == NULL || C_OpenBLAS == NULL ) {
+        fprintf(stderr, "Error in LINE %d, FUNCTION %s(): \nFailed to perform checkAcc due to memory allocation failure (for result matrices).\n",  __LINE__, __FUNCTION__);
+        freeMat(&A);
+        freeMat(&B);
+        freeMat(&C_rck);
+        freeMat(&C_rck_trans);
+        freeMat(&C_rck_intrinsics);
+        freeMat(&C_rck_intrinsics_unroll);
+        freeMat(&C_rck_intrinsics_unroll_blocked);
+        freeMat(&C_rkc);
+        freeMat(&C_rkc_intrinsics);
+        freeMat(&C_rkc_intrinsics_unroll);
+        freeMat(&C_rkc_blocked);
+        freeMat(&C_rkc_blocked_omp);
+        freeMat(&C_rkc_intrinsics_unroll_blocked);
+        freeMat(&C_improved);
+        freeMat(&C_OpenBLAS);
+        return;
+    }
+
     matmul_rck(A, B, C_rck);
     matmul_rck_trans(A, B, C_rck_trans);
-    matmul_rck_AVX(A, B, C_rck_AVX);
-    matmul_rck_AVX_unroll(A, B, C_rck_AVX_unroll);
-    matmul_rck_AVX_unroll_blocked(A, B, C_rck_AVX_unroll_blocked);
+    matmul_rck_intrinsics(A, B, C_rck_intrinsics);
+    matmul_rck_intrinsics_unroll(A, B, C_rck_intrinsics_unroll);
+    matmul_rck_intrinsics_unroll_blocked(A, B, C_rck_intrinsics_unroll_blocked);
     matmul_rkc(A, B, C_rkc);
+    matmul_rkc_intrinsics(A, B, C_rkc_intrinsics);
+    matmul_rkc_intrinsics_unroll(A, B, C_rkc_intrinsics_unroll);
     matmul_rkc_blocked(A, B, C_rkc_blocked);
-    matmul_rkc_blocked_AVX(A, B, C_rkc_blocked_AVX);
+    matmul_rkc_blocked_omp(A, B, C_rkc_blocked_omp);
+    matmul_rkc_intrinsics_unroll_blocked(A, B, C_rkc_intrinsics_unroll_blocked);
     matmul_improved(A, B, C_improved);
     matmul_OpenBLAS(A, B, C_OpenBLAS);
 
-    double error[10] = {0};
+    double error[20] = {0};
     for (size_t i = 0; i < size * size; i++) {
         error[0] += fabsf(C_rck->data[i] - C_rck_trans->data[i]);
-        error[1] += fabsf(C_rck->data[i] - C_rck_AVX->data[i]);
-        error[2] += fabsf(C_rck->data[i] - C_rck_AVX_unroll->data[i]);
-        error[3] += fabsf(C_rck->data[i] - C_rck_AVX_unroll_blocked->data[i]);
+        error[1] += fabsf(C_rck->data[i] - C_rck_intrinsics->data[i]);
+        error[2] += fabsf(C_rck->data[i] - C_rck_intrinsics_unroll->data[i]);
+        error[3] += fabsf(C_rck->data[i] - C_rck_intrinsics_unroll_blocked->data[i]);
+
         error[4] += fabsf(C_rck->data[i] - C_rkc->data[i]);
-        error[5] += fabsf(C_rck->data[i] - C_rkc_blocked->data[i]);
-        error[6] += fabsf(C_rck->data[i] - C_rkc_blocked_AVX->data[i]);
-        error[7] += fabsf(C_rck->data[i] - C_improved->data[i]);
-        error[8] += fabsf(C_rck->data[i] - C_OpenBLAS->data[i]);
+        error[5] += fabsf(C_rck->data[i] - C_rkc_intrinsics->data[i]);
+        error[6] += fabsf(C_rck->data[i] - C_rkc_intrinsics_unroll->data[i]);
+        error[7] += fabsf(C_rck->data[i] - C_rkc_intrinsics_unroll_blocked->data[i]);
+
+        error[8] += fabsf(C_rck->data[i] - C_rkc_blocked->data[i]);
+        error[9] += fabsf(C_rck->data[i] - C_rkc_blocked_omp->data[i]);
+
+        error[10] += fabsf(C_rck->data[i] - C_improved->data[i]);
+        error[11] += fabsf(C_rck->data[i] - C_OpenBLAS->data[i]);
     }
-    // print the average error of each implementation method
-    printf("                                    Average error\n");
-    printf("matmul_rck_trans                     %f\n", error[0] / (size * size));
-    printf("matmul_rck_AVX                       %f\n", error[1] / (size * size));
-    printf("matmul_rck_AVX_unroll                %f\n", error[2] / (size * size));
-    printf("matmul_rck_AVX_unroll_blocked        %f\n", error[3] / (size * size));
-    printf("matmul_rkc                           %f\n", error[4] / (size * size));
-    printf("matmul_rkc_blocked                   %f\n", error[5] / (size * size));
-    printf("matmul_rkc_blocked_AVX               %f\n", error[6] / (size * size));
-    printf("matmul_improved                      %f\n", error[7] / (size * size));
-    printf("matmul_OpenBLAS                      %f\n", error[8] / (size * size));
+
+    printf("                                      Average error\n");
+    printf("matmul_rck_trans                        %f\n", error[0] / (size * size));
+    printf("matmul_rck_intrinsics                   %f\n", error[1] / (size * size));
+    printf("matmul_rck_intrinsics_unroll            %f\n", error[2] / (size * size));
+    printf("matmul_rck_intrinsics_unroll_blocked    %f\n", error[3] / (size * size));
+
+    printf("matmul_rkc                              %f\n", error[4] / (size * size));
+    printf("matmul_rkc_intrinsics                   %f\n", error[5] / (size * size));
+    printf("matmul_rkc_intrinsics_unroll            %f\n", error[6] / (size * size));
+    printf("matmul_rkc_intrinsics_unroll_blocked    %f\n", error[7] / (size * size));
+
+    printf("matmul_rkc_blocked                      %f\n", error[8] / (size * size));
+    printf("matmul_rkc_blocked_omp                  %f\n", error[9] / (size * size));
+
+    printf("matmul_improved                         %f\n", error[10] / (size * size));
+    printf("matmul_OpenBLAS                         %f\n", error[11] / (size * size));
 
     freeMat(&A);
     freeMat(&B);
     freeMat(&C_rck);
     freeMat(&C_rck_trans);
-    freeMat(&C_rck_AVX);
-    freeMat(&C_rck_AVX_unroll);
-    freeMat(&C_rck_AVX_unroll_blocked);
+    freeMat(&C_rck_intrinsics);
+    freeMat(&C_rck_intrinsics_unroll);
+    freeMat(&C_rck_intrinsics_unroll_blocked);
+
     freeMat(&C_rkc);
+    freeMat(&C_rkc_intrinsics);
+    freeMat(&C_rkc_intrinsics_unroll);
+    freeMat(&C_rkc_intrinsics_unroll_blocked);
+
     freeMat(&C_rkc_blocked);
-    freeMat(&C_rkc_blocked_AVX);
+    freeMat(&C_rkc_blocked_omp);
     freeMat(&C_improved);
     freeMat(&C_OpenBLAS);
 }
@@ -158,43 +209,37 @@ void merge_memcpy(const Matrix *C1, const Matrix *C2, const Matrix *C3, const Ma
     for (size_t r = 0; r < C1->row; r++) { // each loop deals with a single row
         size_t subMatrixRowsIndex = C1->col * r;
         size_t mainMatrixRowsIndex = dest->col * r;
-        
-        // deal with the upper left of C (same row & same col)
         memcpy(&((dest->data)[mainMatrixRowsIndex]), &((C1->data)[subMatrixRowsIndex]), C1->col * sizeof(float));
-        
-        // deal with the upper right of C (same row)
         memcpy(&((dest->data)[mainMatrixRowsIndex + C1->col]), &((C2->data)[subMatrixRowsIndex]), C1->col * sizeof(float));
-        
-        // deal with the lower left of C (same col)
         memcpy(&((dest->data)[mainMatrixRowsIndex + rowCenterPosition]), &((C3->data)[subMatrixRowsIndex]), C1->col * sizeof(float));
-        
-        // deal with the lower right of C
         memcpy(&((dest->data)[mainMatrixRowsIndex + rowCenterPosition + C1->col]), &((C4->data)[subMatrixRowsIndex]), C1->col * sizeof(float));
     }
 }
 
-// split a matrix into four sub-matrices using memcpy
+// split A and B respectively into four sub-matrices using memcpy
 void splits_memcpy(const Matrix *A, const Matrix *B, Matrix *A1, Matrix *A2, Matrix *A3, Matrix *A4, Matrix *B1, Matrix *B2, Matrix *B3, Matrix *B4) {
     size_t rowCenterPosition = A->col * A1->row; // rowCenterPosition locates the first element of the first row in the lower half of the main matrix
-
+    size_t subMatrixRowsIndex = 0;
+    size_t mainMatrixRowsIndex = 0;
+    size_t A1ColBytes = A1->col * sizeof(float);
+    size_t B1ColBytes = B1->col * sizeof(float);
     for (size_t r = 0; r < A1->row; r++) { // each loop deals with a single row
-        size_t subMatrixRowsIndex = A1->col * r;
-        size_t mainMatrixRowsIndex = A->col * r;
-        // deal with the upper left of A and B (same row & same col)
-        memcpy(&((A1->data)[subMatrixRowsIndex]), &((A->data)[mainMatrixRowsIndex]), A1->col * sizeof(float));
-        memcpy(&((B1->data)[subMatrixRowsIndex]), &((B->data)[mainMatrixRowsIndex]), A1->col * sizeof(float));
-
-        // deal with the upper right of A and B (same row)
-        memcpy(&((A2->data)[subMatrixRowsIndex]), &((A->data)[mainMatrixRowsIndex + A1->col]), A1->col * sizeof(float));
-        memcpy(&((B2->data)[subMatrixRowsIndex]), &((B->data)[mainMatrixRowsIndex + A1->col]), A1->col * sizeof(float));
-
-        // deal with the lower left of A and B (same col)
-        memcpy(&((A3->data)[subMatrixRowsIndex]), &((A->data)[mainMatrixRowsIndex + rowCenterPosition]), A1->col * sizeof(float));
-        memcpy(&((B3->data)[subMatrixRowsIndex]), &((B->data)[mainMatrixRowsIndex + rowCenterPosition]), A1->col * sizeof(float));
-
-        // deal with the lower right of A and B
-        memcpy(&((A4->data)[subMatrixRowsIndex]), &((A->data)[mainMatrixRowsIndex + rowCenterPosition + A1->col]), A1->col * sizeof(float));
-        memcpy(&((B4->data)[subMatrixRowsIndex]), &((B->data)[mainMatrixRowsIndex + rowCenterPosition + A1->col]), A1->col * sizeof(float));
+        memcpy(&((A1->data)[subMatrixRowsIndex]), &((A->data)[mainMatrixRowsIndex]), A1ColBytes);
+        memcpy(&((A2->data)[subMatrixRowsIndex]), &((A->data)[mainMatrixRowsIndex + A1->col]), A1ColBytes);
+        memcpy(&((A3->data)[subMatrixRowsIndex]), &((A->data)[mainMatrixRowsIndex + rowCenterPosition]), A1ColBytes);
+        memcpy(&((A4->data)[subMatrixRowsIndex]), &((A->data)[mainMatrixRowsIndex + rowCenterPosition + A1->col]), A1ColBytes);
+        subMatrixRowsIndex += A1->col;
+        mainMatrixRowsIndex += A->col;
+    }
+    subMatrixRowsIndex = 0;
+    mainMatrixRowsIndex = 0;
+    for (size_t r = 0; r < B1->row; r++) { // each loop deals with a single row
+        memcpy(&((B1->data)[subMatrixRowsIndex]), &((B->data)[mainMatrixRowsIndex]), B1ColBytes);
+        memcpy(&((B2->data)[subMatrixRowsIndex]), &((B->data)[mainMatrixRowsIndex + B1->col]), B1ColBytes);
+        memcpy(&((B3->data)[subMatrixRowsIndex]), &((B->data)[mainMatrixRowsIndex + rowCenterPosition]), B1ColBytes);
+        memcpy(&((B4->data)[subMatrixRowsIndex]), &((B->data)[mainMatrixRowsIndex + rowCenterPosition + B1->col]), B1ColBytes);
+        subMatrixRowsIndex += B1->col;
+        mainMatrixRowsIndex += B->col;
     }
 }
 
@@ -260,16 +305,17 @@ bool matmul_rck_trans(const Matrix * A, const Matrix * B, Matrix * C) {
     return true;
 }
 
-bool matmul_rck_AVX(const Matrix * A, const Matrix * B, Matrix * C) {
+bool matmul_rck_intrinsics(const Matrix * A, const Matrix * B, Matrix * C) {
     CHECK("multiplication")
     // multiply A and B to get C
     for (size_t r = 0; r < A->row; r++) {
         for (size_t c = 0; c < B->col; c += 8) {
             __m256 sum_vec = _mm256_setzero_ps();
             for (size_t k = 0; k < A->col; k++) {
-                sum_vec = _mm256_add_ps(sum_vec,
-                                        _mm256_mul_ps(_mm256_loadu_ps(&B(k, c)),
-                                                      _mm256_broadcast_ss(&A(r, k))));
+//                sum_vec = _mm256_add_ps(sum_vec,
+//                                        _mm256_mul_ps(_mm256_loadu_ps(&B(k, c)),
+//                                                      _mm256_broadcast_ss(&A(r, k))));
+                sum_vec = _mm256_fmadd_ps(_mm256_loadu_ps(&B(k, c)), _mm256_broadcast_ss(&A(r, k)), sum_vec);
                 // C(r, c) += A(r, k) * B(k, c);
             }
             _mm256_storeu_ps(&C(r, c), sum_vec);
@@ -278,7 +324,7 @@ bool matmul_rck_AVX(const Matrix * A, const Matrix * B, Matrix * C) {
     return true;
 }
 
-bool matmul_rck_AVX_unroll(const Matrix * A, const Matrix * B, Matrix * C) {
+bool matmul_rck_intrinsics_unroll(const Matrix * A, const Matrix * B, Matrix * C) {
     CHECK("multiplication")
     // multiply A and B to get C
     for (size_t r = 0; r < A->row; r++) {
@@ -289,14 +335,10 @@ bool matmul_rck_AVX_unroll(const Matrix * A, const Matrix * B, Matrix * C) {
             sum_vec[2] = _mm256_loadu_ps(&C(r, c + 16));
             sum_vec[3] = _mm256_loadu_ps(&C(r, c + 24));
             for (size_t k = 0; k < A->col; k++) {
-                sum_vec[0] = _mm256_add_ps(sum_vec[0],
-                                          _mm256_mul_ps(_mm256_loadu_ps(&B(k, c)),_mm256_broadcast_ss(&A(r, k))));
-                sum_vec[1] = _mm256_add_ps(sum_vec[1],
-                                          _mm256_mul_ps(_mm256_loadu_ps(&B(k, c + 8)),_mm256_broadcast_ss(&A(r, k))));
-                sum_vec[2] = _mm256_add_ps(sum_vec[2],
-                                          _mm256_mul_ps(_mm256_loadu_ps(&B(k, c + 16)),_mm256_broadcast_ss(&A(r, k))));
-                sum_vec[3] = _mm256_add_ps(sum_vec[3],
-                                          _mm256_mul_ps(_mm256_loadu_ps(&B(k, c + 24)),_mm256_broadcast_ss(&A(r, k))));
+                sum_vec[0] = _mm256_fmadd_ps(_mm256_loadu_ps(&B(k, c)), _mm256_broadcast_ss(&A(r, k)), sum_vec[0]);
+                sum_vec[1] = _mm256_fmadd_ps(_mm256_loadu_ps(&B(k, c + 8)), _mm256_broadcast_ss(&A(r, k)), sum_vec[1]);
+                sum_vec[2] = _mm256_fmadd_ps(_mm256_loadu_ps(&B(k, c + 16)), _mm256_broadcast_ss(&A(r, k)), sum_vec[2]);
+                sum_vec[3] = _mm256_fmadd_ps(_mm256_loadu_ps(&B(k, c + 24)), _mm256_broadcast_ss(&A(r, k)), sum_vec[3]);
             }
             _mm256_storeu_ps(&C(r, c), sum_vec[0]);
             _mm256_storeu_ps(&C(r, c + 8), sum_vec[1]);
@@ -307,7 +349,7 @@ bool matmul_rck_AVX_unroll(const Matrix * A, const Matrix * B, Matrix * C) {
     return true;
 }
 
-bool matmul_rck_AVX_unroll_blocked(const Matrix * A, const Matrix * B, Matrix * C) {
+bool matmul_rck_intrinsics_unroll_blocked(const Matrix * A, const Matrix * B, Matrix * C) {
     CHECK("multiplication")
     for (size_t block_r = 0; block_r < A->row; block_r += BLOCK_SIZE) {
         for (size_t block_k = 0; block_k < A->col; block_k += BLOCK_SIZE) {
@@ -320,14 +362,10 @@ bool matmul_rck_AVX_unroll_blocked(const Matrix * A, const Matrix * B, Matrix * 
                         sum_vec[2] = _mm256_loadu_ps(&C(r, c + 16));
                         sum_vec[3] = _mm256_loadu_ps(&C(r, c + 24));
                         for (size_t k = block_k; k < block_k + BLOCK_SIZE; k++) {
-                            sum_vec[0] = _mm256_add_ps(sum_vec[0],
-                                                       _mm256_mul_ps(_mm256_loadu_ps(&B(k, c)),_mm256_broadcast_ss(&A(r, k))));
-                            sum_vec[1] = _mm256_add_ps(sum_vec[1],
-                                                       _mm256_mul_ps(_mm256_loadu_ps(&B(k, c + 8)),_mm256_broadcast_ss(&A(r, k))));
-                            sum_vec[2] = _mm256_add_ps(sum_vec[2],
-                                                       _mm256_mul_ps(_mm256_loadu_ps(&B(k, c + 16)),_mm256_broadcast_ss(&A(r, k))));
-                            sum_vec[3] = _mm256_add_ps(sum_vec[3],
-                                                       _mm256_mul_ps(_mm256_loadu_ps(&B(k, c + 24)),_mm256_broadcast_ss(&A(r, k))));
+                            sum_vec[0] = _mm256_fmadd_ps(_mm256_loadu_ps(&B(k, c)), _mm256_broadcast_ss(&A(r, k)), sum_vec[0]);
+                            sum_vec[1] = _mm256_fmadd_ps(_mm256_loadu_ps(&B(k, c + 8)), _mm256_broadcast_ss(&A(r, k)), sum_vec[1]);
+                            sum_vec[2] = _mm256_fmadd_ps(_mm256_loadu_ps(&B(k, c + 16)), _mm256_broadcast_ss(&A(r, k)), sum_vec[2]);
+                            sum_vec[3] = _mm256_fmadd_ps(_mm256_loadu_ps(&B(k, c + 24)), _mm256_broadcast_ss(&A(r, k)), sum_vec[3]);
                         }
                         _mm256_storeu_ps(&C(r, c), sum_vec[0]);
                         _mm256_storeu_ps(&C(r, c + 8), sum_vec[1]);
@@ -347,6 +385,57 @@ bool matmul_rkc(const Matrix * A, const Matrix * B, Matrix * C) {
         for (size_t k = 0; k < A->col; k++) {
             for (size_t c = 0; c < B->col; c++) {
                 C(r, c) += A(r, k) * B(k, c);
+            }
+        }
+    }
+    return true;
+}
+
+bool matmul_rkc_intrinsics(const Matrix * A, const Matrix * B, Matrix * C) {
+    CHECK("multiplication")
+    for (size_t r = 0; r < A->row; r++) {
+        for (size_t k = 0; k < A->col; k++) {
+            for (size_t c = 0; c < B->col; c += 8) {
+                __m256 c_vec = _mm256_loadu_ps(&C(r, c));
+                c_vec = _mm256_fmadd_ps(_mm256_broadcast_ss(&A(r, k)), _mm256_loadu_ps(&B(k, c)), c_vec);
+                _mm256_storeu_ps(&C(r, c), c_vec);
+            }
+            // C(r, c) += A(r, k) * B(k, c);
+        }
+    }
+    return true;
+}
+
+bool matmul_rkc_intrinsics_unroll(const Matrix * A, const Matrix * B, Matrix * C) {
+    CHECK("multiplication")
+    for (size_t r = 0; r < A->row; r++) {
+        for (size_t k = 0; k < A->col; k++) {
+            for (size_t c = 0; c < B->col; c += 64) {
+                __m256 c_vec[8];
+                c_vec[0] = _mm256_loadu_ps(&C(r, c));
+                c_vec[1] = _mm256_loadu_ps(&C(r, c + 8));
+                c_vec[2] = _mm256_loadu_ps(&C(r, c + 16));
+                c_vec[3] = _mm256_loadu_ps(&C(r, c + 24));
+                c_vec[4] = _mm256_loadu_ps(&C(r, c + 32));
+                c_vec[5] = _mm256_loadu_ps(&C(r, c + 40));
+                c_vec[6] = _mm256_loadu_ps(&C(r, c + 48));
+                c_vec[7] = _mm256_loadu_ps(&C(r, c + 56));
+                c_vec[0] = _mm256_fmadd_ps(_mm256_broadcast_ss(&A(r, k)), _mm256_loadu_ps(&B(k, c)), c_vec[0]);
+                c_vec[1] = _mm256_fmadd_ps(_mm256_broadcast_ss(&A(r, k)), _mm256_loadu_ps(&B(k, c + 8)), c_vec[1]);
+                c_vec[2] = _mm256_fmadd_ps(_mm256_broadcast_ss(&A(r, k)), _mm256_loadu_ps(&B(k, c + 16)), c_vec[2]);
+                c_vec[3] = _mm256_fmadd_ps(_mm256_broadcast_ss(&A(r, k)), _mm256_loadu_ps(&B(k, c + 24)), c_vec[3]);
+                c_vec[4] = _mm256_fmadd_ps(_mm256_broadcast_ss(&A(r, k)), _mm256_loadu_ps(&B(k, c + 32)), c_vec[4]);
+                c_vec[5] = _mm256_fmadd_ps(_mm256_broadcast_ss(&A(r, k)), _mm256_loadu_ps(&B(k, c + 40)), c_vec[5]);
+                c_vec[6] = _mm256_fmadd_ps(_mm256_broadcast_ss(&A(r, k)), _mm256_loadu_ps(&B(k, c + 48)), c_vec[6]);
+                c_vec[7] = _mm256_fmadd_ps(_mm256_broadcast_ss(&A(r, k)), _mm256_loadu_ps(&B(k, c + 56)), c_vec[7]);
+                _mm256_storeu_ps(&C(r, c), c_vec[0]);
+                _mm256_storeu_ps(&C(r, c + 8), c_vec[1]);
+                _mm256_storeu_ps(&C(r, c + 16), c_vec[2]);
+                _mm256_storeu_ps(&C(r, c + 24), c_vec[3]);
+                _mm256_storeu_ps(&C(r, c + 32), c_vec[4]);
+                _mm256_storeu_ps(&C(r, c + 40), c_vec[5]);
+                _mm256_storeu_ps(&C(r, c + 48), c_vec[6]);
+                _mm256_storeu_ps(&C(r, c + 56), c_vec[7]);
             }
         }
     }
@@ -373,12 +462,12 @@ bool matmul_rkc_blocked(const Matrix * A, const Matrix * B, Matrix * C) {
     return true;
 }
 
-bool matmul_rkc_blocked_AVX(const Matrix * A, const Matrix * B, Matrix * C) {
+bool matmul_rkc_blocked_omp(const Matrix * A, const Matrix * B, Matrix * C) {
     CHECK("multiplication")
-    // separate the result matrix C into blocks, and block_r, block_k, block_c are the indexes of the blocks
+#pragma omp parallel for
     for (size_t block_r = 0; block_r < A->row; block_r += BLOCK_SIZE) {
-        for (size_t block_k = 0; block_k < A->row; block_k += BLOCK_SIZE) {
-            for (size_t block_c = 0; block_c < A->row; block_c += BLOCK_SIZE) {
+        for (size_t block_k = 0; block_k < A->col; block_k += BLOCK_SIZE) {
+            for (size_t block_c = 0; block_c < B->col; block_c += BLOCK_SIZE) {
                 // compute each block of matrix C
                 for (size_t r = block_r; r < block_r + BLOCK_SIZE; r++) {
                     for (size_t k = block_k; k < block_k + BLOCK_SIZE; k++) {
@@ -393,14 +482,54 @@ bool matmul_rkc_blocked_AVX(const Matrix * A, const Matrix * B, Matrix * C) {
     return true;
 }
 
-bool matmul_improved(const Matrix * A, const Matrix * B, Matrix * C) {
+bool matmul_rkc_intrinsics_unroll_blocked(const Matrix * A, const Matrix * B, Matrix * C) {
     CHECK("multiplication")
+    // separate the result matrix C into blocks, and block_r, block_k, block_c are the indexes of the blocks
+    for (size_t block_r = 0; block_r < A->row; block_r += BLOCK_SIZE) {
+        for (size_t block_k = 0; block_k < A->row; block_k += BLOCK_SIZE) {
+            for (size_t block_c = 0; block_c < A->row; block_c += BLOCK_SIZE) {
+                // compute each block of matrix C
+                for (size_t r = block_r; r < block_r + BLOCK_SIZE; r++) {
+                    for (size_t k = block_k; k < block_k + BLOCK_SIZE; k++) {
+                        __m256 c_vec[8];
+                        c_vec[0] = _mm256_loadu_ps(&C(r, block_c));
+                        c_vec[1] = _mm256_loadu_ps(&C(r, block_c + 8));
+                        c_vec[2] = _mm256_loadu_ps(&C(r, block_c + 16));
+                        c_vec[3] = _mm256_loadu_ps(&C(r, block_c + 24));
+                        c_vec[4] = _mm256_loadu_ps(&C(r, block_c + 32));
+                        c_vec[5] = _mm256_loadu_ps(&C(r, block_c + 40));
+                        c_vec[6] = _mm256_loadu_ps(&C(r, block_c + 48));
+                        c_vec[7] = _mm256_loadu_ps(&C(r, block_c + 56));
+                        c_vec[0] = _mm256_fmadd_ps(_mm256_broadcast_ss(&A(r, k)), _mm256_loadu_ps(&B(k, block_c)), c_vec[0]);
+                        c_vec[1] = _mm256_fmadd_ps(_mm256_broadcast_ss(&A(r, k)), _mm256_loadu_ps(&B(k, block_c + 8)), c_vec[1]);
+                        c_vec[2] = _mm256_fmadd_ps(_mm256_broadcast_ss(&A(r, k)), _mm256_loadu_ps(&B(k, block_c + 16)), c_vec[2]);
+                        c_vec[3] = _mm256_fmadd_ps(_mm256_broadcast_ss(&A(r, k)), _mm256_loadu_ps(&B(k, block_c + 24)), c_vec[3]);
+                        c_vec[4] = _mm256_fmadd_ps(_mm256_broadcast_ss(&A(r, k)), _mm256_loadu_ps(&B(k, block_c + 32)), c_vec[4]);
+                        c_vec[5] = _mm256_fmadd_ps(_mm256_broadcast_ss(&A(r, k)), _mm256_loadu_ps(&B(k, block_c + 40)), c_vec[5]);
+                        c_vec[6] = _mm256_fmadd_ps(_mm256_broadcast_ss(&A(r, k)), _mm256_loadu_ps(&B(k, block_c + 48)), c_vec[6]);
+                        c_vec[7] = _mm256_fmadd_ps(_mm256_broadcast_ss(&A(r, k)), _mm256_loadu_ps(&B(k, block_c + 56)), c_vec[7]);
+                        _mm256_storeu_ps(&C(r, block_c), c_vec[0]);
+                        _mm256_storeu_ps(&C(r, block_c + 8), c_vec[1]);
+                        _mm256_storeu_ps(&C(r, block_c + 16), c_vec[2]);
+                        _mm256_storeu_ps(&C(r, block_c + 24), c_vec[3]);
+                        _mm256_storeu_ps(&C(r, block_c + 32), c_vec[4]);
+                        _mm256_storeu_ps(&C(r, block_c + 40), c_vec[5]);
+                        _mm256_storeu_ps(&C(r, block_c + 48), c_vec[6]);
+                        _mm256_storeu_ps(&C(r, block_c + 56), c_vec[7]);
+                    }
+                }
+            }
+        }
+    }
+    return true;
+}
 
+bool matmul_improved(const Matrix * A, const Matrix * B, Matrix * C) { // NOLINT(*-no-recursion)
+    CHECK("multiplication")
     if (A->row <= 2048) {
-        matmul_rkc_blocked(A, B, C);
+        matmul_rkc_blocked_omp(A, B, C);
     } else {
         size_t subLength = A->row / 2;
-
         Matrix *A1 = initMat(subLength, subLength);
         Matrix *A2 = initMat(subLength, subLength);
         Matrix *A3 = initMat(subLength, subLength);
@@ -558,10 +687,13 @@ bool matmul_improved(const Matrix * A, const Matrix * B, Matrix * C) {
     return true;
 }
 
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "cppcoreguidelines-narrowing-conversions"
 bool matmul_OpenBLAS(const Matrix * A, const Matrix * B, Matrix * C) {
     CHECK("multiplication")
     cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, A->row, B->col, A->col, 1, A->data, A->col, B->data, B->col, 0, C->data, C->col);
     return true;
 }
+#pragma clang diagnostic pop
 
 

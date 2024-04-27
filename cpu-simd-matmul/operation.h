@@ -32,21 +32,28 @@ bool matmul_rck(const Matrix * A, const Matrix * B, Matrix * C);
 
 bool matmul_rck_trans(const Matrix * A, const Matrix * B, Matrix * C);
 
-bool matmul_rck_AVX(const Matrix * A, const Matrix * B, Matrix * C);
+bool matmul_rck_intrinsics(const Matrix * A, const Matrix * B, Matrix * C);
 
-bool matmul_rck_AVX_unroll(const Matrix * A, const Matrix * B, Matrix * C);
+bool matmul_rck_intrinsics_unroll(const Matrix * A, const Matrix * B, Matrix * C);
 
-bool matmul_rck_AVX_unroll_blocked(const Matrix * A, const Matrix * B, Matrix * C);
+bool matmul_rck_intrinsics_unroll_blocked(const Matrix * A, const Matrix * B, Matrix * C);
 
 bool matmul_rkc(const Matrix * A, const Matrix * B, Matrix * C);
 
+bool matmul_rkc_intrinsics(const Matrix * A, const Matrix * B, Matrix * C);
+
+bool matmul_rkc_intrinsics_unroll(const Matrix * A, const Matrix * B, Matrix * C);
+
+bool matmul_rkc_intrinsics_unroll_blocked(const Matrix * A, const Matrix * B, Matrix * C);
+
 bool matmul_rkc_blocked(const Matrix * A, const Matrix * B, Matrix * C);
 
-bool matmul_rkc_blocked_AVX(const Matrix * A, const Matrix * B, Matrix * C);
+bool matmul_rkc_blocked_omp(const Matrix * A, const Matrix * B, Matrix * C);
 
 bool matmul_improved(const Matrix * A, const Matrix * B, Matrix * C);
 
 bool matmul_OpenBLAS(const Matrix * A, const Matrix * B, Matrix * C);
+
 
 void fillMat(Matrix * matrix);
 

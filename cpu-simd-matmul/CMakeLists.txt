@@ -3,7 +3,7 @@ project(Project3 C)
 
 set(CMAKE_C_STANDARD 11)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native ")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -fopenmp ")
 
 set(OpenBLAS_DIR "D:/OpenBLAS-0.3.27-x64")
 

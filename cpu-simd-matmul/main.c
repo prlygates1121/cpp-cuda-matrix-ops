@@ -3,15 +3,16 @@
 #include <stdlib.h>
 #include "operation.h"
 
-#define SIZE 1024
+#define SIZE 2048
 #define WARMUP 20
 
-int mod = 0;
+bool check = true;
 
 int main() {
-    srand(time(NULL));
-    if (mod == 1) {
+    srand(time(NULL)); // NOLINT(*-msc51-cpp)
+    if (check) {
         checkAcc();
+        system("pause");
         return 0;
     }
     Matrix *A = initMat(SIZE, SIZE);
@@ -35,7 +36,7 @@ int main() {
         fillMat(B);
         startTime = clock();
 
-        if (!matmul_rkc_blocked(A, B, C)) {
+        if (!matmul_improved(A, B, C)) {
             fprintf(stderr, "Error: \nFailed to perform No.%d computation (C).\n", i);
             freeMat(&A);
             freeMat(&B);
@@ -54,5 +55,6 @@ int main() {
     freeMat(&A);
     freeMat(&B);
     freeMat(&C);
+    system("pause");
     return 0;
 }
