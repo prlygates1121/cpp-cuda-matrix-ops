@@ -1,7 +1,3 @@
-//
-// Created by 30959 on 4/10/2024.
-//
-
 #include <immintrin.h>
 #include <omp.h>
 #include <math.h>

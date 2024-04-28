@@ -6,7 +6,7 @@
 #define SIZE 2048
 #define WARMUP 20
 
-bool check = true;
+bool check = false;
 
 int main() {
     srand(time(NULL)); // NOLINT(*-msc51-cpp)
