@@ -73,8 +73,12 @@ public:
             throw std::invalid_argument("Matrix dimensions do not match");
         }
         Matrix<T> res = create(sharedData->rows, sharedData->cols);
-        for (int i = 0; i < sharedData->rows * sharedData->cols; i++) {
-            res.sharedData->data[i] = sharedData->data[i] + other.sharedData->data[i];
+        size_t length = sharedData->rows * sharedData->cols;
+        const T* data1 = sharedData->data;
+        const T* data2 = other.sharedData->data;
+        T* resData = res.sharedData->data;
+        for (int i = 0; i < length; i++) {
+            *(resData++) = *(data1++) + *(data2++);
         }
         return res;
     }
