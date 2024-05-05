@@ -57,8 +57,14 @@ public:
     }
 
     bool operator==(const Matrix<T> &other) {
+        if (this == &other) {
+            return true;
+        }
+        if (sharedData == other.sharedData) {
+            return true;
+        }
         if (sharedData->rows != other.sharedData->rows || sharedData->cols != other.sharedData->cols) {
-            throw std::invalid_argument("Matrix dimensions do not match");
+            return false;
         }
         for (int i = 0; i < sharedData->rows * sharedData->cols; i++) {
             if (sharedData->data[i] != other.sharedData->data[i]) {
@@ -66,6 +72,10 @@ public:
             }
         }
         return true;
+    }
+
+    bool operator!=(const Matrix<T> &other) {
+        return !(operator==(other));
     }
 
     Matrix<T> operator+(const Matrix<T> &other) const {
