@@ -84,11 +84,11 @@ public:
         }
         Matrix<T> res = create(sharedData->rows, sharedData->cols);
         size_t length = sharedData->rows * sharedData->cols;
-        const T* data1 = sharedData->data;
-        const T* data2 = other.sharedData->data;
-        T* resData = res.sharedData->data;
-        for (int i = 0; i < length; i++) {
-            *(resData++) = *(data1++) + *(data2++);
+        const T* lhsData = sharedData->data;
+        const T* rhsData = other.sharedData->data;
+        T* resultData = res.sharedData->data;
+        for (size_t i = 0; i < length; i++) {
+            *(resultData++) = *(lhsData++) + *(rhsData++);
         }
         return res;
     }
@@ -99,11 +99,11 @@ public:
         }
         Matrix<T> res = create(sharedData->rows, sharedData->cols);
         size_t length = sharedData->rows * sharedData->cols;
-        const T* data1 = sharedData->data;
-        const T* data2 = other.sharedData->data;
-        T* resData = res.sharedData->data;
-        for (int i = 0; i < length; i++) {
-            *(resData++) = *(data1++) - *(data2++);
+        const T* lhsData = sharedData->data;
+        const T* rhsData = other.sharedData->data;
+        T* resultData = res.sharedData->data;
+        for (size_t i = 0; i < length; i++) {
+            *(resultData++) = *(lhsData++) - *(rhsData++);
         }
         return res;
     }
