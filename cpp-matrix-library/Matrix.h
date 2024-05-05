@@ -15,10 +15,14 @@ public:
     int refCount;
 
     // initialize a new MatrixData with a given number of rows and columns
+    // used only when a new matrix is created with create(), which means the refCount is 1
     MatrixData(size_t rows, size_t cols)
         : refCount(1), rows(rows), cols(cols), data(new T[rows * cols]) {}; // initialize refCount to 1
 
     // initialize a new MatrixData with hard copy of another MatrixData
+    // used only for duplicating the sharedData of a matrix
+    // used only when: 1. the matrix is modified
+    //                 2. its sharedData has a refCount > 1
     MatrixData(const MatrixData<T> &other)
         : refCount(0), rows(other.rows), cols(other.cols), data(new T[rows * cols]) { // initialize refCount to 0
         std::copy(other.data, other.data + rows * cols, data);
@@ -34,16 +38,20 @@ class Matrix {
 private:
     MatrixData<T>* sharedData;
 
-    // used to create a new Matrix with a sharedData
+    // private constructor
     explicit Matrix(MatrixData<T>* sharedData): sharedData(sharedData) {};
 
-    // used to set the sharedData of the current Matrix
+    // set the sharedData of the current Matrix
+    // delete the old sharedData if it is not shared
+    // increment the refCount of the new sharedData
     void setMatrixData(MatrixData<T>* newData) {
-        if (--sharedData->refCount == 0) { // if there are no more references to sharedData after decrementing
+        if (--sharedData->refCount == 0) {
             delete sharedData;
         }
         sharedData = newData;
         sharedData->refCount++;
+        // print refCount for debugging
+        // std::cout << "111 refCount = " << sharedData->refCount << std::endl;
     }
 
     // used to duplicate the sharedData of the current Matrix
@@ -65,6 +73,13 @@ public:
         return Matrix<T>(sharedData);
     }
 
+    // copy constructor
+    Matrix(const Matrix<T> &other): sharedData(other.sharedData) {
+        sharedData->refCount++;
+        // print refCount for debugging
+        // std::cout << "222 refCount = " << sharedData->refCount << std::endl;
+    }
+
     void fill(T value) {
         if (sharedData->refCount > 1) { // if sharedData is shared
             duplicateMatrixData(); // copy on write
@@ -83,7 +98,8 @@ public:
             }
             std::cout << std::endl;
         }
-        std::cout << "refCount = " << sharedData->refCount << std::endl << std::endl;
+        std::cout << "refCount = " << sharedData->refCount << std::endl;
+        std::cout << "data address = " << sharedData->data << std::endl << std::endl;
     }
 
     ~Matrix(){
@@ -96,6 +112,8 @@ public:
         if (this != &other || sharedData != other.sharedData) {
             setMatrixData(other.sharedData);
         }
+        // print Haha
+        std::cout << "Haha" << std::endl;
         return *this;
     }
 
