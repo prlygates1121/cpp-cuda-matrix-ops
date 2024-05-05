@@ -4,6 +4,9 @@
 #include <iostream>
 #include <stdexcept>
 
+#define CHECK_DIMENSIONS if (sharedData->rows != other.sharedData->rows || sharedData->cols != other.sharedData->rows) { \
+    throw std::invalid_argument("Matrix dimensions do not match"); }
+
 template <typename T>
 class MatrixData {
 public:
@@ -79,9 +82,7 @@ public:
     }
 
     Matrix<T> operator+(const Matrix<T> &other) const {
-        if (sharedData->rows != other.sharedData->rows || sharedData->cols != other.sharedData->cols) {
-            throw std::invalid_argument("Matrix dimensions do not match");
-        }
+        CHECK_DIMENSIONS
         Matrix<T> res = create(sharedData->rows, sharedData->cols);
         size_t length = sharedData->rows * sharedData->cols;
         const T* lhsData = sharedData->data;
@@ -94,9 +95,7 @@ public:
     }
 
     Matrix<T> operator-(const Matrix<T> &other) const {
-        if (sharedData->rows != other.sharedData->rows || sharedData->cols != other.sharedData->cols) {
-            throw std::invalid_argument("Matrix dimensions do not match");
-        }
+        CHECK_DIMENSIONS
         Matrix<T> res = create(sharedData->rows, sharedData->cols);
         size_t length = sharedData->rows * sharedData->cols;
         const T* lhsData = sharedData->data;
