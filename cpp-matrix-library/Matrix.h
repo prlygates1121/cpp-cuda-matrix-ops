@@ -82,6 +82,21 @@ public:
         }
         return res;
     }
+
+    Matrix<T> operator-(const Matrix<T> &other) const {
+        if (sharedData->rows != other.sharedData->rows || sharedData->cols != other.sharedData->cols) {
+            throw std::invalid_argument("Matrix dimensions do not match");
+        }
+        Matrix<T> res = create(sharedData->rows, sharedData->cols);
+        size_t length = sharedData->rows * sharedData->cols;
+        const T* data1 = sharedData->data;
+        const T* data2 = other.sharedData->data;
+        T* resData = res.sharedData->data;
+        for (int i = 0; i < length; i++) {
+            *(resData++) = *(data1++) - *(data2++);
+        }
+        return res;
+    }
 };
 
 #endif //PROJECT4_MATRIX_H
