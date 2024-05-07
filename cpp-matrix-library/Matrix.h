@@ -4,6 +4,7 @@
 #include <iostream>
 #include <stdexcept>
 
+using namespace std;
 
 template <typename T>
 class MatrixData {
@@ -13,13 +14,13 @@ public:
     int refCount;
 
     // initialize a new MatrixData with a given number of rows and columns
-    // used only when a new matrix is created with create(), which means the refCount is 1
+    // used only when a new matrix is created with create()
     MatrixData(size_t rows, size_t cols)
-        : refCount(1), rows(rows), cols(cols), data(new T[rows * cols]) {}; // initialize refCount to 1
+        : refCount(0), rows(rows), cols(cols), data(new T[rows * cols]) {};
 
     // initialize a new MatrixData with hard copy of another MatrixData
     MatrixData(const MatrixData<T> &other)
-        : refCount(1), rows(other.rows), cols(other.cols), data(new T[rows * cols]) { // initialize refCount to 0
+        : refCount(0), rows(other.rows), cols(other.cols), data(new T[rows * cols]) { // initialize refCount to 0
         std::copy(other.data, other.data + rows * cols, data);
     }
 
@@ -32,6 +33,12 @@ template <typename T>
 class Matrix {
 private:
     MatrixData<T>* sharedData;
+public:
+    MatrixData<T> *getSharedData() const {
+        return sharedData;
+    }
+
+private:
 
     // private constructor
     explicit Matrix(MatrixData<T>* sharedData): sharedData(sharedData) {};
@@ -39,10 +46,11 @@ private:
     // replace the sharedData of the current Matrix with a new sharedData
     // delete the original sharedData, if its refCount is now 0
     // used by the assignment operator
-    inline void replaceData(MatrixData<T>* newData) {
+    inline void assignData(MatrixData<T>* anotherData) {
         sharedData->refCount--;
+//        cout << getSharedData()->refCount << endl;
         if (sharedData->refCount == 0) delete sharedData;
-        sharedData = newData;
+        sharedData = anotherData;
         sharedData->refCount++;
     }
 
@@ -56,6 +64,7 @@ private:
             try {
                 // create a new sharedData with hard copy of the original sharedData, and set it as the sharedData of the current Matrix
                 sharedData = new MatrixData<T>(*sharedData);
+                sharedData->refCount++;
             } catch (const std::bad_alloc&) {
                 throw std::runtime_error("Memory allocation failed");
             }
@@ -69,6 +78,23 @@ public:
             sharedData = new MatrixData<T>(rows, cols);
         } catch (const std::bad_alloc&) {
             throw std::runtime_error("Memory allocation failed");
+        }
+        sharedData->refCount++;
+        return Matrix<T>(sharedData);
+    }
+
+    inline static Matrix<T> create(size_t rows, size_t cols, T fill) {
+        MatrixData<T>* sharedData;
+        try {
+            sharedData = new MatrixData<T>(rows, cols);
+        } catch (const std::bad_alloc&) {
+            throw std::runtime_error("Memory allocation failed");
+        }
+        sharedData->refCount++;
+        size_t length = sharedData->rows * sharedData->cols;
+        T* data = sharedData->data;
+        for (size_t i = 0; i < length; i++) {
+            *(data++) = fill;
         }
         return Matrix<T>(sharedData);
     }
@@ -85,6 +111,26 @@ public:
         for (size_t i = 0; i < length; i++) {
             *(data++) = value;
         }
+    }
+
+    inline void resize(size_t rows, size_t cols) {
+        if (rows == sharedData->rows && cols == sharedData->cols) {
+            return;
+        }
+        MatrixData<T>* newData;
+        try {
+            newData = new MatrixData<T>(rows, cols);
+        } catch (const std::bad_alloc& ) {
+            throw std::runtime_error("Memory allocation failed");
+        }
+        size_t minRows = std::min(sharedData->rows, rows);
+        size_t minCols = std::min(sharedData->cols, cols);
+        for (size_t r = 0; r < minRows; r++) {
+            for (size_t c = 0; c < minCols; c++) {
+                newData->data[r * cols + c] = sharedData->data[r * sharedData->cols + c];
+            }
+        }
+        assignData(newData);
     }
 
     inline void printMatrix() {
@@ -106,7 +152,7 @@ public:
 
     inline Matrix<T>& operator=(const Matrix<T> &other) {
         if (this != &other || sharedData != other.sharedData) {
-            replaceData(other.sharedData);
+            assignData(other.sharedData);
         }
         return *this;
     }
