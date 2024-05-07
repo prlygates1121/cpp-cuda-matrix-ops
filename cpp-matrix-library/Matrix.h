@@ -24,6 +24,27 @@ public:
         std::copy(other.data, other.data + rows * cols, data);
     }
 
+    inline static void createData(size_t rows, size_t cols, MatrixData<T>** pMatrixData) {
+        try {
+            *pMatrixData = new MatrixData<T>(rows, cols);
+        } catch (const std::bad_alloc&) {
+            throw std::runtime_error("Memory allocation failed");
+        }
+    }
+
+    inline static void createData(size_t rows, size_t cols, T fill, MatrixData<T>** pMatrixData) {
+        try {
+            *pMatrixData = new MatrixData<T>(rows, cols);
+        } catch (const std::bad_alloc&) {
+            throw std::runtime_error("Memory allocation failed");
+        }
+        size_t length = (*pMatrixData)->rows * (*pMatrixData)->cols;
+        T* data = (*pMatrixData)->data;
+        for (size_t i = 0; i < length; i++) {
+            *(data++) = fill;
+        }
+    }
+
     ~MatrixData() {
         delete[] data;
     }
@@ -34,15 +55,13 @@ class Matrix {
 private:
     MatrixData<T>* sharedData;
 public:
-    MatrixData<T> *getSharedData() const {
+    MatrixData<T>* getSharedData() const {
         return sharedData;
     }
-
 private:
-
-    // replace the sharedData of the current Matrix with a new sharedData
-    // delete the original sharedData, if its refCount is now 0
-    // used by the assignment operator
+    // replace the sharedData with a new sharedData and decrement the refCount
+    // delete the original sharedData, if refCount == 1;
+    // used when you want to replace the current sharedData with other
     inline void assignData(MatrixData<T>* anotherData) {
         sharedData->refCount--;
         if (sharedData->refCount == 0) delete sharedData;
@@ -50,8 +69,9 @@ private:
         sharedData->refCount++;
     }
 
-    // duplicate the sharedData, if the refCount of the original sharedData is greater than 1
-    // used before modifying the data of the current Matrix
+    // duplicate the sharedData (and later modify the copy) and decrement refCount, if the refCount >= 1
+    // do nothing (and later modify the original data directly), if refCount == 1;
+    // used before modifying the sharedData
     inline void CoW() {
         // if the original sharedData has a refCount > 1, duplicate it
         if (sharedData->refCount > 1) {
@@ -68,21 +88,19 @@ private:
         // if the original sharedData has a refCount == 1, do nothing
     }
 public:
-    Matrix(size_t rows, size_t cols, T fill = 0){
-        try {
-            sharedData = new MatrixData<T>(rows, cols);
-            sharedData->refCount++;
-        } catch (const std::bad_alloc&) {
-            throw std::runtime_error("Memory allocation failed");
-        }
-        size_t length = sharedData->rows * sharedData->cols;
-        T* data = sharedData->data;
-        for (size_t i = 0; i < length; i++) {
-            *(data++) = fill;
-        }
+    // constructor
+    Matrix(size_t rows, size_t cols){
+        MatrixData<T>::createData(rows, cols, &sharedData);
+        sharedData->refCount++;
     };
 
-    // copy constructor
+    // constructor with filling
+    Matrix(size_t rows, size_t cols, T fill){
+        MatrixData<T>::createData(rows, cols, fill, &sharedData);
+        sharedData->refCount++;
+    };
+
+    // copy constructor (sharing another matrix's sharedData)
     Matrix(const Matrix<T> &other): sharedData(other.sharedData) {
         sharedData->refCount++;
     }
@@ -101,11 +119,7 @@ public:
             return;
         }
         MatrixData<T>* newData;
-        try {
-            newData = new MatrixData<T>(rows, cols);
-        } catch (const std::bad_alloc& ) {
-            throw std::runtime_error("Memory allocation failed");
-        }
+        MatrixData<T>::createData(rows, cols, &newData);
         size_t minRows = std::min(sharedData->rows, rows);
         size_t minCols = std::min(sharedData->cols, cols);
         for (size_t r = 0; r < minRows; r++) {
@@ -166,7 +180,7 @@ public:
         if (sharedData->rows != other.sharedData->rows || sharedData->cols != other.sharedData->rows) {
             throw std::invalid_argument("Matrix dimensions do not match");
         }
-        Matrix<T> res = create(sharedData->rows, sharedData->cols);
+        Matrix<T> res(sharedData->rows, sharedData->cols);
         size_t length = sharedData->rows * sharedData->cols;
         const T* lhsData = sharedData->data;
         const T* rhsData = other.sharedData->data;
@@ -181,7 +195,7 @@ public:
         if (sharedData->rows != other.sharedData->rows || sharedData->cols != other.sharedData->rows) {
             throw std::invalid_argument("Matrix dimensions do not match");
         }
-        Matrix<T> res = create(sharedData->rows, sharedData->cols);
+        Matrix<T> res(sharedData->rows, sharedData->cols);
         size_t length = sharedData->rows * sharedData->cols;
         const T* lhsData = sharedData->data;
         const T* rhsData = other.sharedData->data;
@@ -196,8 +210,7 @@ public:
         if (sharedData->cols != other.sharedData->rows) {
             throw std::invalid_argument("Matrix dimensions are invalid for multiplication");
         }
-        Matrix<T> res = create(sharedData->rows, other.sharedData->cols);
-        res.fill(0);
+        Matrix<T> res(sharedData->rows, other.sharedData->cols, 0);
         for (size_t r = 0; r < sharedData->rows; r++) {
             for (size_t k = 0; k < sharedData->cols; k++) {
                 for (size_t c = 0; c < other.sharedData->cols; c++) {
