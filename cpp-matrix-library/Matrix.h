@@ -44,20 +44,18 @@ private:
     // set the sharedData of the current Matrix
     // delete the old sharedData if it is not shared
     // increment the refCount of the new sharedData
-    void setMatrixData(MatrixData<T>* newData) {
+    void changeData(MatrixData<T>* newData) {
         if (--sharedData->refCount == 0) {
             delete sharedData;
         }
         sharedData = newData;
         sharedData->refCount++;
-        // print refCount for debugging
-        // std::cout << "111 refCount = " << sharedData->refCount << std::endl;
     }
 
     // used to duplicate the sharedData of the current Matrix
-    void duplicateMatrixData() {
+    void duplicateData() {
         try {
-            setMatrixData(new MatrixData<T>(*sharedData));
+            changeData(new MatrixData<T>(*sharedData));
         } catch (const std::bad_alloc&) {
             throw std::runtime_error("Memory allocation failed");
         }
@@ -82,7 +80,7 @@ public:
 
     void fill(T value) {
         if (sharedData->refCount > 1) { // if sharedData is shared
-            duplicateMatrixData(); // copy on write
+            duplicateData(); // copy on write
         }
         size_t length = sharedData->rows * sharedData->cols;
         T* data = sharedData->data;
@@ -110,7 +108,7 @@ public:
 
     Matrix<T>& operator=(const Matrix<T> &other) {
         if (this != &other || sharedData != other.sharedData) {
-            setMatrixData(other.sharedData);
+            changeData(other.sharedData);
         }
         // print Haha
         std::cout << "Haha" << std::endl;
@@ -196,7 +194,7 @@ public:
             throw std::out_of_range("Matrix index out of range");
         }
         if (sharedData->refCount > 1) { // if sharedData is shared
-            duplicateMatrixData(); // copy on write
+            duplicateData(); // copy on write
         }
         return sharedData->data[row * sharedData->cols + col];
     }
