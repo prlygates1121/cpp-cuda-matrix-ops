@@ -40,15 +40,11 @@ public:
 
 private:
 
-    // private constructor
-    explicit Matrix(MatrixData<T>* sharedData): sharedData(sharedData) {};
-
     // replace the sharedData of the current Matrix with a new sharedData
     // delete the original sharedData, if its refCount is now 0
     // used by the assignment operator
     inline void assignData(MatrixData<T>* anotherData) {
         sharedData->refCount--;
-//        cout << getSharedData()->refCount << endl;
         if (sharedData->refCount == 0) delete sharedData;
         sharedData = anotherData;
         sharedData->refCount++;
@@ -72,32 +68,19 @@ private:
         // if the original sharedData has a refCount == 1, do nothing
     }
 public:
-    inline static Matrix<T> create(size_t rows, size_t cols) {
-        MatrixData<T>* sharedData;
+    Matrix(size_t rows, size_t cols, T fill = 0){
         try {
             sharedData = new MatrixData<T>(rows, cols);
+            sharedData->refCount++;
         } catch (const std::bad_alloc&) {
             throw std::runtime_error("Memory allocation failed");
         }
-        sharedData->refCount++;
-        return Matrix<T>(sharedData);
-    }
-
-    inline static Matrix<T> create(size_t rows, size_t cols, T fill) {
-        MatrixData<T>* sharedData;
-        try {
-            sharedData = new MatrixData<T>(rows, cols);
-        } catch (const std::bad_alloc&) {
-            throw std::runtime_error("Memory allocation failed");
-        }
-        sharedData->refCount++;
         size_t length = sharedData->rows * sharedData->cols;
         T* data = sharedData->data;
         for (size_t i = 0; i < length; i++) {
             *(data++) = fill;
         }
-        return Matrix<T>(sharedData);
-    }
+    };
 
     // copy constructor
     Matrix(const Matrix<T> &other): sharedData(other.sharedData) {
