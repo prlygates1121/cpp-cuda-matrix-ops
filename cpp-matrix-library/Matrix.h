@@ -31,6 +31,7 @@ public:
 template <typename T>
 class Matrix {
 private:
+    MatrixData<T>* sharedData;
 
     // private constructor
     explicit Matrix(MatrixData<T>* sharedData): sharedData(sharedData) {};
@@ -62,8 +63,6 @@ private:
         // if the original sharedData has a refCount == 1, do nothing
     }
 public:
-    MatrixData<T>* sharedData;
-
     inline static Matrix<T> create(size_t rows, size_t cols) {
         MatrixData<T>* sharedData;
         try {
@@ -83,7 +82,7 @@ public:
         CoW();
         size_t length = sharedData->rows * sharedData->cols;
         T* data = sharedData->data;
-        for (int i = 0; i < length; i++) {
+        for (size_t i = 0; i < length; i++) {
             *(data++) = value;
         }
     }
@@ -122,7 +121,7 @@ public:
         if (sharedData->rows != other.sharedData->rows || sharedData->cols != other.sharedData->cols) {
             return false;
         }
-        for (int i = 0; i < sharedData->rows * sharedData->cols; i++) {
+        for (size_t i = 0; i < sharedData->rows * sharedData->cols; i++) {
             if (sharedData->data[i] != other.sharedData->data[i]) {
                 return false;
             }
