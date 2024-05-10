@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <stdexcept>
+#include <omp.h>
 
 using namespace std;
 
@@ -82,7 +83,6 @@ private:
         if (sharedData->refCount == 0) delete sharedData;
         sharedData = anotherData;
         sharedData->refCount++;
-        cout << sharedData->refCount << endl;
     }
 
     // duplicate the sharedData (and later modify the copy) and decrement refCount,                     if refCount >= 1
@@ -230,7 +230,7 @@ public:
         cout << "------------------------" << endl;
         for (size_t r = 0; r < m_rows; r++) {
             for (size_t c = 0; c < m_cols; c++) {
-                cout << (*this)(r, c) << " ";
+                cout << *(m_data + r * sharedData->data_cols + c) << " ";
             }
             cout << endl;
         }
@@ -324,14 +324,55 @@ public:
     }
 
     inline Matrix<T> operator*(const Matrix<T> &other) const {
+
         if (m_cols != other.m_rows) {
             throw std::invalid_argument("Matrix dimensions are invalid for multiplication");
         }
         Matrix<T> res(m_rows, other.m_cols, 0);
-        for (size_t r = 0; r < m_rows; r++) {
-            for (size_t k = 0; k < m_cols; k++) {
+
+        if (m_rows >= 1024 && m_cols >= 1024 && other.m_cols >= 1024) {
+            const size_t block_size = 64;
+            const size_t padding_col = (m_cols % block_size == 0) ? 0 : block_size - m_cols % block_size;
+            const size_t padding_row = (m_rows % block_size == 0) ? 0 : block_size - m_rows % block_size;
+            const size_t padding_col_other = (other.m_cols % block_size == 0) ? 0 : block_size - other.m_cols % block_size;
+            const size_t padding_row_other = (other.m_rows % block_size == 0) ? 0 : block_size - other.m_rows % block_size;
+            // padding the matrix
+            Matrix<T> m_padded(m_rows + padding_row, m_cols + padding_col, 0);
+            Matrix<T> other_padded(other.m_rows + padding_row_other, other.m_cols + padding_col_other, 0);
+            for (size_t r = 0; r < m_rows; r++) {
+                for (size_t c = 0; c < m_cols; c++) {
+                    m_padded(r, c) = (*this)(r, c);
+                }
+            }
+            for (size_t r = 0; r < other.m_rows; r++) {
                 for (size_t c = 0; c < other.m_cols; c++) {
-                    *(res.m_data + r * res.sharedData->data_cols + c) += *(m_data + r * sharedData->data_cols + k) * *(other.m_data + k * other.sharedData->data_cols + c);
+                    other_padded(r, c) = other(r, c);
+                }
+            }
+            // block multiplication
+#pragma omp parallel for
+            for (size_t block_r = 0; block_r < m_rows; block_r += block_size) {
+                for (size_t block_k = 0; block_k < m_cols; block_k += block_size) {
+                    for (size_t block_c = 0; block_c < other.m_cols; block_c += block_size) {
+                        for (size_t r = 0; r < block_size; r++) {
+                            for (size_t k = 0; k < block_size; k++) {
+                                for (size_t c = 0; c < block_size; c++) {
+                                    *(res.m_data + (block_r + r) * res.sharedData->data_cols + block_c + c) +=
+                                            *(m_padded.m_data + (block_r + r) * m_padded.sharedData->data_cols + block_k + k) *
+                                            *(other_padded.m_data + (block_k + k) * other_padded.sharedData->data_cols + block_c + c);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+#pragma omp parallel for
+            for (size_t r = 0; r < m_rows; r++) {
+                for (size_t k = 0; k < m_cols; k++) {
+                    for (size_t c = 0; c < other.m_cols; c++) {
+                        *(res.m_data + r * res.sharedData->data_cols + c) += *(m_data + r * sharedData->data_cols + k) * *(other.m_data + k * other.sharedData->data_cols + c);
+                    }
                 }
             }
         }

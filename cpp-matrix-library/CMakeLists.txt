@@ -3,6 +3,8 @@ project(Project4)
 
 set(CMAKE_CXX_STANDARD 17)
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp ")
+
 add_executable(Project4 Matrix.cpp Matrix.h
         test1.cpp
         test2.cpp
