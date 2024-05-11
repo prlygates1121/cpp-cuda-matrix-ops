@@ -5,6 +5,8 @@
 #include <stdexcept>
 #include <omp.h>
 
+#define STEP sharedData->data_cols
+
 using namespace std;
 
 template <typename T>
@@ -74,7 +76,7 @@ private:
     size_t m_rows, m_cols;
     bool isROI;
 public:
-    [[nodiscard]] size_t getMCols() const {
+    [[maybe_unused]] [[nodiscard]] size_t getMCols() const {
         return m_cols;
     }
 
@@ -95,36 +97,6 @@ private:
         sharedData = anotherData;
         sharedData->refCount++;
     }
-
-    // duplicate the sharedData (and later modify the copy) and decrement refCount,                     if refCount >= 1
-    // do nothing (and later modify the original data directly),                                        if refCount == 1
-    // used before modifying the sharedData
-    inline void detach() {
-        // if the original sharedData has a refCount > 1, duplicate it or its ROI
-        if (sharedData->refCount > 1) { // decrement the refCount of the original sharedData, since it is not linked to the current Matrix anymore
-            sharedData->refCount--;
-            if (!isROI){
-                MatrixData<T>::allocateDataHardCopy(*sharedData, &sharedData);
-                sharedData->refCount++;
-            } else {
-                MatrixData<T> *newData;
-                MatrixData<T>::allocateData(m_rows, m_cols, &newData);
-                sharedData->refCount++;
-                // copy the ROI data to the new sharedData
-                T* data = newData->data;
-                for (size_t r = 0; r < m_rows; r++) {
-                    for (size_t c = 0; c < m_cols; c++) {
-                        *(data++) = *(m_data + r * sharedData->data_cols + c);
-                    }
-                }
-                // replace the sharedData with the new sharedData
-                assign(newData);
-            }
-            m_data = sharedData->data;
-            isROI = false;
-        }
-        // if the original sharedData has a refCount == 1, do nothing
-    }
 public:
     // default constructor
     Matrix() {
@@ -135,7 +107,6 @@ public:
         m_cols = 0;
         isROI = false;
     }
-
 
     // constructor
     Matrix(size_t rows, size_t cols) {
@@ -181,8 +152,37 @@ public:
         isROI = true;
     }
 
+    // duplicate the sharedData and decrement refCount,                     if refCount >= 1
+    // do nothing,                                                                                      if refCount == 1
+    // used before modifying the sharedData
+    inline void detach() {
+        // if the original sharedData has a refCount > 1, duplicate it or its ROI
+        if (sharedData->refCount > 1) { // decrement the refCount of the original sharedData, since it is not linked to the current Matrix anymore
+            sharedData->refCount--;
+            if (!isROI){
+                MatrixData<T>::allocateDataHardCopy(*sharedData, &sharedData);
+                sharedData->refCount++;
+            } else {
+                MatrixData<T> *newData;
+                MatrixData<T>::allocateData(m_rows, m_cols, &newData);
+                sharedData->refCount++;
+                // copy the ROI data to the new sharedData
+                T* data = newData->data;
+                for (size_t r = 0; r < m_rows; r++) {
+                    for (size_t c = 0; c < m_cols; c++) {
+                        *(data++) = *(m_data + r * sharedData->data_cols + c);
+                    }
+                }
+                // replace the sharedData with the new sharedData
+                assign(newData);
+            }
+            m_data = sharedData->data;
+            isROI = false;
+        }
+        // if the original sharedData has a refCount == 1, do nothing
+    }
+
     inline void fill(T value) {
-        detach();
         size_t length = m_rows * m_cols;
         if (!isROI) {
             // if the current Matrix is a full matrix
@@ -196,7 +196,7 @@ public:
             T* data = m_data;
             for (size_t r = 0; r < m_rows; r++) {
                 for (size_t c = 0; c < m_cols; c++) {
-                    *(data + r * sharedData->data_cols + c) = value;
+                    *(data + r * STEP + c) = value;
                 }
             }
         }
@@ -215,7 +215,7 @@ public:
         size_t minCols = std::min(sharedData->data_cols, cols);
         for (size_t r = 0; r < minRows; r++) {
             for (size_t c = 0; c < minCols; c++) {
-                newData->data[r * cols + c] = sharedData->data[r * sharedData->data_cols + c];
+                newData->data[r * cols + c] = sharedData->data[r * STEP + c];
             }
         }
         assign(newData);
@@ -236,7 +236,7 @@ public:
         size_t minCols = std::min(sharedData->data_cols, cols);
         for (size_t r = 0; r < minRows; r++) {
             for (size_t c = 0; c < minCols; c++) {
-                newData->data[r * cols + c] = sharedData->data[r * sharedData->data_cols + c];
+                newData->data[r * cols + c] = sharedData->data[r * STEP + c];
             }
         }
 
@@ -248,7 +248,7 @@ public:
         isROI = false;
     }
 
-    inline void printMatInfo() {
+    inline void show() {
         cout << "------------------------" << endl;
         for (size_t r = 0; r < m_rows; r++) {
             for (size_t c = 0; c < m_cols; c++) {
@@ -288,7 +288,7 @@ public:
         }
         for (int r = 0; r < m_rows; r++) {
             for (int c = 0; c < m_cols; c++) {
-                if (*(m_data + r * sharedData->data_cols + c) != *(other.m_data + r * other.sharedData->data_cols + c)) {
+                if (*(m_data + r * STEP + c) != *(other.m_data + r * other.STEP + c)) {
                     return false;
                 }
             }
@@ -316,9 +316,7 @@ public:
         } else {
             for (size_t r = 0; r < m_rows; r++) {
                 for (size_t c = 0; c < m_cols; c++) {
-                    *(res.m_data + r * res.sharedData->data_cols + c) =
-                            *(m_data + r * sharedData->data_cols + c) +
-                            *(other.m_data + r * other.sharedData->data_cols + c);
+                    *(res.m_data + r * res.STEP + c) = *(m_data + r * STEP + c) + *(other.m_data + r * other.STEP + c);
                 }
             }
         }
@@ -341,9 +339,7 @@ public:
         } else {
             for (size_t r = 0; r < m_rows; r++) {
                 for (size_t c = 0; c < m_cols; c++) {
-                    *(res.m_data + r * res.sharedData->data_cols + c) =
-                            *(m_data + r * sharedData->data_cols + c) -
-                            *(other.m_data + r * other.sharedData->data_cols + c);
+                    *(res.m_data + r * res.STEP + c) = *(m_data + r * STEP + c) - *(other.m_data + r * other.STEP + c);
                 }
             }
         }
@@ -364,27 +360,25 @@ public:
             const size_t padding_row_other = (other.m_rows % block_size == 0) ? 0 : block_size - other.m_rows % block_size;
 
             // padding the result matrix
-            Matrix<T> res(m_rows + padding_row, other.m_cols + padding_col_other, 0);
+            Matrix<T> result(m_rows + padding_row, other.m_cols + padding_col_other, 0);
             // padding the multiplication matrices
-            Matrix<T> m_padded(m_rows + padding_row, m_cols + padding_col, 0);
-            Matrix<T> other_padded(other.m_rows + padding_row_other, other.m_cols + padding_col_other, 0);
+            Matrix<T> left_padded(m_rows + padding_row, m_cols + padding_col, 0);
+            Matrix<T> right_padded(other.m_rows + padding_row_other, other.m_cols + padding_col_other, 0);
 
 
             // print size of the padded matrices
-            cout << "m_padded: " << m_padded.m_rows << " " << m_padded.m_cols << endl;
-            cout << "other_padded: " << other_padded.m_rows << " " << other_padded.m_cols << endl;
+//            cout << "left_padded: " << left_padded.m_rows << " " << left_padded.m_cols << endl;
+//            cout << "right_padded: " << right_padded.m_rows << " " << right_padded.m_cols << endl;
 
             //
             for (size_t r = 0; r < m_rows; r++) {
                 for (size_t c = 0; c < m_cols; c++) {
-                    *(m_padded.m_data + r * m_padded.sharedData->data_cols + c) =
-                            *(m_data + r * sharedData->data_cols + c);
+                    *(left_padded.m_data + r * left_padded.STEP + c) = *(m_data + r * STEP + c);
                 }
             }
             for (size_t r = 0; r < other.m_rows; r++) {
                 for (size_t c = 0; c < other.m_cols; c++) {
-                    *(other_padded.m_data + r * other_padded.sharedData->data_cols + c) =
-                            *(other.m_data + r * other.sharedData->data_cols + c);
+                    *(right_padded.m_data + r * right_padded.STEP + c) = *(other.m_data + r * other.STEP + c);
                 }
             }
             // block multiplication
@@ -395,48 +389,48 @@ public:
                         for (size_t r = 0; r < block_size; r++) {
                             for (size_t k = 0; k < block_size; k++) {
                                 for (size_t c = 0; c < block_size; c++) {
-                                    *(res.m_data + (block_r + r) * res.sharedData->data_cols + block_c + c) +=
-                                            *(m_padded.m_data + (block_r + r) * m_padded.sharedData->data_cols + block_k + k) *
-                                            *(other_padded.m_data + (block_k + k) * other_padded.sharedData->data_cols + block_c + c);
+                                    *(result.m_data + (block_r + r) * result.STEP + block_c + c) +=
+                                            *(left_padded.m_data + (block_r + r) * left_padded.STEP + block_k + k) *
+                                            *(right_padded.m_data + (block_k + k) * right_padded.STEP + block_c + c);
                                 }
                             }
                         }
                     }
                 }
             }
-            // resize the result matrix
-            res.resize(m_rows, other.m_cols);
-            return res;
+            // resize the result matrix to the original size
+            result.resize(m_rows, other.m_cols);
+            return result;
         } else {
-            Matrix<T> res(m_rows, other.m_cols, 0);
+            Matrix<T> result(m_rows, other.m_cols, 0);
 #pragma omp parallel for
             for (size_t r = 0; r < m_rows; r++) {
                 for (size_t k = 0; k < m_cols; k++) {
                     for (size_t c = 0; c < other.m_cols; c++) {
-                        *(res.m_data + r * res.sharedData->data_cols + c) +=
-                                *(m_data + r * sharedData->data_cols + k) *
-                                *(other.m_data + k * other.sharedData->data_cols + c);
+                        *(result.m_data + r * result.STEP + c) +=
+                                *(m_data + r * STEP + k) *
+                                *(other.m_data + k * other.STEP + c);
                     }
                 }
             }
-            return res;
+            return result;
         }
     }
+
+//    // used to access the value of a matrix element
+//    inline const T& operator()(size_t row, size_t col) const {
+//        if (row >= m_rows || col >= m_cols) {
+//            throw std::out_of_range("Matrix index out of range");
+//        }
+//        return *(m_data + row * STEP + col);
+//    }
 
     // used to access the value of a matrix element
     inline const T& operator()(size_t row, size_t col) const {
         if (row >= m_rows || col >= m_cols) {
             throw std::out_of_range("Matrix index out of range");
         }
-        return *(m_data + row * sharedData->data_cols + col);
-    }
-
-    // used to access the value of a matrix element
-    inline const T& read(size_t row, size_t col) const {
-        if (row >= m_rows || col >= m_cols) {
-            throw std::out_of_range("Matrix index out of range");
-        }
-        return *(m_data + row * sharedData->data_cols + col);
+        return *(m_data + row * STEP + col);
     }
 
     // used to modify the value of a matrix element
@@ -444,8 +438,7 @@ public:
         if (row >= m_rows || col >= m_cols) {
             throw std::out_of_range("Matrix index out of range");
         }
-        detach();
-        return *(m_data + row * sharedData->data_cols + col);
+        return *(m_data + row * STEP + col);
     }
 };
 

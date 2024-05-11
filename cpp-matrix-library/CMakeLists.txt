@@ -11,10 +11,12 @@ add_executable(Project4 Matrix.cpp Matrix.h
         test2.cpp
         matmul_test.cpp
         matmul_test.cpp
-        gtest1.cpp
-        gtest1.cpp
+        algebra_gtest.cpp
+        algebra_gtest.cpp
         pointer_gtest.cpp
         pointer_gtest.cpp
+        whatever.cpp
+        whatever.cpp
 )
 
 include(FetchContent)

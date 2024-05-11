@@ -61,7 +61,7 @@
 //    }
 //}
 //
-//TEST(Algebra, BlockedMultiplication_DOUBLE_1) {
+//TEST(Algebra, BlockedMultiplication_DOUBLE) {
 //    Matrix<double> m(2345, 4231, 9.2);
 //    Matrix<double> n(4231, 1025, 0.859);
 //    Matrix<double> result(0, 0);
