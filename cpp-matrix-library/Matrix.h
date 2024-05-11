@@ -14,6 +14,9 @@ public:
     T* data;
     int refCount;
 
+    MatrixData() :
+            refCount(0), data_rows(0), data_cols(0), data(nullptr) {};
+
     // initialize a new MatrixData with a given number of data_rows and columns
     // used only when a new matrix is created with create()
     MatrixData(size_t rows, size_t cols)
@@ -21,7 +24,7 @@ public:
 
     // initialize a new MatrixData with hard copy of another MatrixData
     MatrixData(const MatrixData<T> &other)
-        : refCount(0), data_rows(other.data_rows), data_cols(other.data_cols), data(new T[data_rows * data_cols]) { // initialize refCount to 0
+        : refCount(0), data_rows(other.data_rows), data_cols(other.data_cols), data(new T[data_rows * data_cols]) {
         std::copy(other.data, other.data + data_rows * data_cols, data); // hard copy the data
     }
 
@@ -116,13 +119,24 @@ private:
                 }
                 // replace the sharedData with the new sharedData
                 assign(newData);
-                m_data = sharedData->data;
-                isROI = false;
             }
+            m_data = sharedData->data;
+            isROI = false;
         }
         // if the original sharedData has a refCount == 1, do nothing
     }
 public:
+    // default constructor
+    Matrix() {
+        sharedData = new MatrixData<T>();
+        sharedData->refCount++;
+        m_data = nullptr;
+        m_rows = 0;
+        m_cols = 0;
+        isROI = false;
+    }
+
+
     // constructor
     Matrix(size_t rows, size_t cols) {
         MatrixData<T>::allocateData(rows, cols, &sharedData);
@@ -411,6 +425,14 @@ public:
 
     // used to access the value of a matrix element
     inline const T& operator()(size_t row, size_t col) const {
+        if (row >= m_rows || col >= m_cols) {
+            throw std::out_of_range("Matrix index out of range");
+        }
+        return *(m_data + row * sharedData->data_cols + col);
+    }
+
+    // used to access the value of a matrix element
+    inline const T& read(size_t row, size_t col) const {
         if (row >= m_rows || col >= m_cols) {
             throw std::out_of_range("Matrix index out of range");
         }

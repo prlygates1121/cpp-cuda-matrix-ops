@@ -9,10 +9,12 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp ")
 add_executable(Project4 Matrix.cpp Matrix.h
         test1.cpp
         test2.cpp
-        test3.cpp
-        test3.cpp
+        matmul_test.cpp
+        matmul_test.cpp
         gtest1.cpp
         gtest1.cpp
+        pointer_gtest.cpp
+        pointer_gtest.cpp
 )
 
 include(FetchContent)
