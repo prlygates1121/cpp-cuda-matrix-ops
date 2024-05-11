@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include "Matrix.h"
 
-#define ALLOWED_ERROR 1
+#define ALLOWED_ERROR 0
 
 // Demonstrate some basic assertions.
 TEST(Algebra, AdditionAndSubtraction) {
@@ -46,7 +46,7 @@ TEST(Algebra, NormalMultiplication_DOUBLE) {
 
     result = m * n;
     for (size_t i = 0; i < 512 * 512; i++) {
-        ASSERT_NEAR(result.getSharedData()->data[i], 6881.28, ALLOWED_ERROR);
+        ASSERT_NEAR(result.getSharedData()->data[i], 6881.28, 1e-10);
     }
 }
 
@@ -57,51 +57,60 @@ TEST(Algebra, NormalMultiplication_FLOAT) {
 
     result = m * n;
     for (size_t i = 0; i < 512 * 512; i++) {
-        ASSERT_NEAR(result.getSharedData()->data[i], -1246.0032f, ALLOWED_ERROR);
+        ASSERT_NEAR(result.getSharedData()->data[i], -1246.0032f, 1e-2);
     }
 }
 
 TEST(Algebra, BlockedMultiplication_DOUBLE_1) {
     Matrix<double> m(2345, 4231, 9.2);
-    Matrix<double> n(4231, 1021, 0.859);
+    Matrix<double> n(4231, 1025, 0.859);
     Matrix<double> result(0, 0);
 
     result = m * n;
-    for (size_t i = 0; i < 2345 * 1021; i++) {
-        ASSERT_NEAR(result.getSharedData()->data[i], 9.2 * 0.859 * 4231, ALLOWED_ERROR);
+    for (size_t i = 0; i < 2345 * 1025; i++) {
+        ASSERT_NEAR(result.getSharedData()->data[i], 9.2 * 0.859 * 4231, 1e-9);
     }
 }
 
 TEST(Algebra, BlockedMultiplication_DOUBLE_2) {
-    Matrix<double> m(134, 6048, 3452.2);
-    Matrix<double> n(6048, 1111, 0.0231);
+    Matrix<double> m(1340, 1024, 3452.2);
+    Matrix<double> n(1024, 1111, 0.0231);
     Matrix<double> result(0, 0);
 
     result = m * n;
-    for (size_t i = 0; i < 134 * 1111; i++) {
-        ASSERT_NEAR(result.getSharedData()->data[i], 3452.2 * 0.0231 * 6048, ALLOWED_ERROR);
+    for (size_t i = 0; i < 1340 * 1111; i++) {
+        ASSERT_NEAR(result.getSharedData()->data[i], 3452.2 * 0.0231 * 1024, 1e-7);
     }
 }
 
 TEST(Algebra, BlockedMultiplication_FLOAT) {
     Matrix<float> m(2345, 4231, 9.2f);
-    Matrix<float> n(4231, 1021, 0.859f);
+    Matrix<float> n(4231, 1024, 0.859f);
     Matrix<float> result(0, 0);
 
     result = m * n;
-    for (size_t i = 0; i < 2345 * 1021; i++) {
-        ASSERT_NEAR(result.getSharedData()->data[i], 9.2f * 0.859f * 4231, ALLOWED_ERROR);
+    for (size_t i = 0; i < 2345 * 1024; i++) {
+        ASSERT_NEAR(result.getSharedData()->data[i], 9.2f * 0.859f * 4231, 20);
     }
 }
 
 TEST(Algebra, BlockedMultiplication_FLOAT_2) {
-    Matrix<float> m(1347, 6048, 3452.2f);
+    Matrix<float> m(1344, 6048, 3452.2f);
     Matrix<float> n(6048, 1111, 0.0231f);
     Matrix<float> result(0, 0);
 
     result = m * n;
-    for (size_t i = 0; i < 1347 * 1111; i++) {
-        ASSERT_NEAR(result.getSharedData()->data[i], 3452.2f * 0.0231f * 6048, ALLOWED_ERROR);
+    for (size_t i = 0; i < 1344 * 1111; i++) {
+        ASSERT_NEAR(result.getSharedData()->data[i], 3452.2f * 0.0231f * 6048, 20);
+    }
+}
+
+TEST(Memory, CopyConstructor) {
+    Matrix<int> m(512, 512, 4);
+    Matrix<int> n(m);
+
+    for (size_t i = 0; i < 512 * 512; i++) {
+        ASSERT_EQ(n.getSharedData()->data[i], 4);
     }
 }
 

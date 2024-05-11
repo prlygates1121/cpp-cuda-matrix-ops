@@ -71,6 +71,14 @@ private:
     size_t m_rows, m_cols;
     bool isROI;
 public:
+    [[nodiscard]] size_t getMCols() const {
+        return m_cols;
+    }
+
+    [[nodiscard]] size_t getMRows() const {
+        return m_rows;
+    }
+
     MatrixData<T>* getSharedData() const {
         return sharedData;
     }
@@ -333,7 +341,6 @@ public:
         if (m_cols != other.m_rows) {
             throw std::invalid_argument("Matrix dimensions are invalid for multiplication");
         }
-        Matrix<T> res(m_rows, other.m_cols, 0);
 
         if (m_rows >= 1024 && m_cols >= 1024 && other.m_cols >= 1024) {
             const size_t block_size = 64;
@@ -341,17 +348,29 @@ public:
             const size_t padding_row = (m_rows % block_size == 0) ? 0 : block_size - m_rows % block_size;
             const size_t padding_col_other = (other.m_cols % block_size == 0) ? 0 : block_size - other.m_cols % block_size;
             const size_t padding_row_other = (other.m_rows % block_size == 0) ? 0 : block_size - other.m_rows % block_size;
-            // padding the matrix
+
+            // padding the result matrix
+            Matrix<T> res(m_rows + padding_row, other.m_cols + padding_col_other, 0);
+            // padding the multiplication matrices
             Matrix<T> m_padded(m_rows + padding_row, m_cols + padding_col, 0);
             Matrix<T> other_padded(other.m_rows + padding_row_other, other.m_cols + padding_col_other, 0);
+
+
+            // print size of the padded matrices
+            cout << "m_padded: " << m_padded.m_rows << " " << m_padded.m_cols << endl;
+            cout << "other_padded: " << other_padded.m_rows << " " << other_padded.m_cols << endl;
+
+            //
             for (size_t r = 0; r < m_rows; r++) {
                 for (size_t c = 0; c < m_cols; c++) {
-                    m_padded(r, c) = (*this)(r, c);
+                    *(m_padded.m_data + r * m_padded.sharedData->data_cols + c) =
+                            *(m_data + r * sharedData->data_cols + c);
                 }
             }
             for (size_t r = 0; r < other.m_rows; r++) {
                 for (size_t c = 0; c < other.m_cols; c++) {
-                    other_padded(r, c) = other(r, c);
+                    *(other_padded.m_data + r * other_padded.sharedData->data_cols + c) =
+                            *(other.m_data + r * other.sharedData->data_cols + c);
                 }
             }
             // block multiplication
@@ -371,7 +390,11 @@ public:
                     }
                 }
             }
+            // resize the result matrix
+            res.resize(m_rows, other.m_cols);
+            return res;
         } else {
+            Matrix<T> res(m_rows, other.m_cols, 0);
 #pragma omp parallel for
             for (size_t r = 0; r < m_rows; r++) {
                 for (size_t k = 0; k < m_cols; k++) {
@@ -382,8 +405,8 @@ public:
                     }
                 }
             }
+            return res;
         }
-        return res;
     }
 
     // used to access the value of a matrix element
