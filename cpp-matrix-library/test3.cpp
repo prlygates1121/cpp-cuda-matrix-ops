@@ -5,9 +5,9 @@
 
 
 int main() {
-    Matrix<float> m(4096, 4096, 4.2f);
-    Matrix<float> n(4096, 4096, 3.2f);
-    Matrix<float> result(4096, 4096);
+    Matrix<float> m(512, 512, 4.2f);
+    Matrix<float> n(512, 512, 3.2f);
+    Matrix<float> result(0, 0);
 
     // time the matrix multiplication
     for (int i = 0; i < 10; i++) {

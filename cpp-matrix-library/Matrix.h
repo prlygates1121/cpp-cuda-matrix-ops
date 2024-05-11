@@ -246,7 +246,6 @@ public:
         }
     }
 
-    // never preserve the original data, always use other's data
     inline Matrix<T>& operator=(const Matrix<T> &other) {
         if (this != &other || sharedData != other.sharedData) {
             assign(other.sharedData);
@@ -265,9 +264,11 @@ public:
         if (m_rows != other.m_rows || m_cols != other.m_cols) {
             return false;
         }
-        for (size_t i = 0; i < sharedData->data_rows * sharedData->data_cols; i++) {
-            if (sharedData->data[i] != other.sharedData->data[i]) {
-                return false;
+        for (int r = 0; r < m_rows; r++) {
+            for (int c = 0; c < m_cols; c++) {
+                if (*(m_data + r * sharedData->data_cols + c) != *(other.m_data + r * other.sharedData->data_cols + c)) {
+                    return false;
+                }
             }
         }
         return true;
@@ -293,7 +294,9 @@ public:
         } else {
             for (size_t r = 0; r < m_rows; r++) {
                 for (size_t c = 0; c < m_cols; c++) {
-                    *(res.m_data + r * res.sharedData->data_cols + c) = *(m_data + r * sharedData->data_cols + c) + *(other.m_data + r * other.sharedData->data_cols + c);
+                    *(res.m_data + r * res.sharedData->data_cols + c) =
+                            *(m_data + r * sharedData->data_cols + c) +
+                            *(other.m_data + r * other.sharedData->data_cols + c);
                 }
             }
         }
@@ -316,7 +319,9 @@ public:
         } else {
             for (size_t r = 0; r < m_rows; r++) {
                 for (size_t c = 0; c < m_cols; c++) {
-                    *(res.m_data + r * res.sharedData->data_cols + c) = *(m_data + r * sharedData->data_cols + c) - *(other.m_data + r * other.sharedData->data_cols + c);
+                    *(res.m_data + r * res.sharedData->data_cols + c) =
+                            *(m_data + r * sharedData->data_cols + c) -
+                            *(other.m_data + r * other.sharedData->data_cols + c);
                 }
             }
         }
@@ -371,7 +376,9 @@ public:
             for (size_t r = 0; r < m_rows; r++) {
                 for (size_t k = 0; k < m_cols; k++) {
                     for (size_t c = 0; c < other.m_cols; c++) {
-                        *(res.m_data + r * res.sharedData->data_cols + c) += *(m_data + r * sharedData->data_cols + k) * *(other.m_data + k * other.sharedData->data_cols + c);
+                        *(res.m_data + r * res.sharedData->data_cols + c) +=
+                                *(m_data + r * sharedData->data_cols + k) *
+                                *(other.m_data + k * other.sharedData->data_cols + c);
                     }
                 }
             }
