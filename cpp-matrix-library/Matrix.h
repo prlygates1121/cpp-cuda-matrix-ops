@@ -63,7 +63,7 @@ private:
 public:
     // default constructor
     Matrix() {
-        sharedData = new MatrixData<T>();
+        sharedData = new MatrixData<T>;
         sharedData->refCount++;
         CANCEL_ROI
     }
@@ -156,19 +156,17 @@ public:
     }
 
     inline Matrix<T> getROI(size_t x, size_t y, size_t width, size_t height) {
-        if (isROI) {
-            throw std::invalid_argument("Cannot get ROI from a ROI matrix");
-        }
+//        if (isROI) {
+//            throw std::invalid_argument("Cannot get ROI from a ROI matrix");
+//        }
         if (width == 0 || height == 0 ||
-            x + width > sharedData->data_cols ||
-            y + height > sharedData->data_rows ||
+            x + width > m_cols ||
+            y + height > m_rows ||
             (x == 0 && y == 0 && width == m_cols && height == m_rows)) {
             throw std::invalid_argument("Invalid ROI range");
         }
-        Matrix<T> roi(width, height);
-        roi.sharedData = sharedData;
-        sharedData->refCount++;
-        roi.m_data = sharedData->data + y * sharedData->data_cols + x;
+        Matrix<T> roi = (*this);
+        roi.m_data = m_data + y * STEP + x;
         roi.m_cols = width;
         roi.m_rows = height;
         roi.isROI = true;
@@ -251,13 +249,16 @@ public:
         Matrix<T> res(m_rows, m_cols);
         if (!isROI && !other.isROI) {
             size_t length = sharedData->data_rows * sharedData->data_cols;
-            const T* lhs = sharedData->data;
-            const T* rhs = other.sharedData->data;
-            T* data = res.sharedData->data;
+//            const T* lhs = sharedData->data;
+//            const T* rhs = other.sharedData->data;
+//            T* data = res.sharedData->data;
 #pragma omp parallel for
             for (size_t i = 0; i < length; i++) {
-                *(data++) = *(lhs++) + *(rhs++);
+                res.sharedData->data[i] = sharedData->data[i] + other.sharedData->data[i];
             }
+//            for (size_t i = 0; i < length; i++) {
+//                *(data++) = *(lhs++) + *(rhs++);
+//            }
         } else {
 #pragma omp parallel for collapse(2)
             for (size_t r = 0; r < m_rows; r++) {
@@ -269,7 +270,7 @@ public:
         return res;
     }
 
-    inline Matrix& operator+=(const Matrix<T> &other) {
+    inline Matrix<T>& operator+=(const Matrix<T> &other) {
         *this = *this + other;
         return *this;
     }
@@ -281,12 +282,12 @@ public:
         Matrix<T> res(m_rows, m_cols);
         if (!isROI && !other.isROI) {
             size_t length = sharedData->data_rows * sharedData->data_cols;
-            const T* lhs = sharedData->data;
-            const T* rhs = other.sharedData->data;
-            T* data = res.sharedData->data;
+//            const T* lhs = sharedData->data;
+//            const T* rhs = other.sharedData->data;
+//            T* data = res.sharedData->data;
 #pragma omp parallel for
             for (size_t i = 0; i < length; i++) {
-                *(data++) = *(lhs++) - *(rhs++);
+                res.sharedData->data[i] = sharedData->data[i] - other.sharedData->data[i];
             }
         } else {
 #pragma omp parallel for collapse(2)
