@@ -9,51 +9,47 @@
 
 using namespace std;
 
-template <typename T>
-class MatrixData {
-public:
-    size_t data_rows, data_cols;
-    T* data;
-    unsigned int refCount;
-
-    MatrixData() :
-            refCount(0), data_rows(0), data_cols(0), data(nullptr) {};
-
-    MatrixData(size_t rows, size_t cols)
-        : refCount(0), data_rows(rows), data_cols(cols), data(new T[rows * cols]) {};
-
-    MatrixData(const MatrixData<T> &other)
-        : refCount(0), data_rows(other.data_rows), data_cols(other.data_cols), data(new T[data_rows * data_cols]) {
-        std::copy(other.data, other.data + data_rows * data_cols, data);
-    }
-
-    inline static void allocateData(size_t rows, size_t cols, MatrixData<T>** pMatrixData) {
-        try {
-            *pMatrixData = new MatrixData<T>(rows, cols);
-        } catch (const std::bad_alloc&) {
-            throw std::runtime_error("Memory allocation failed");
-        }
-    }
-
-    inline static void copyData(const MatrixData<T> &other, MatrixData<T>** pMatrixData) {
-        try {
-            *pMatrixData = new MatrixData<T>(other);
-        } catch (const std::bad_alloc&) {
-            throw std::runtime_error("Memory allocation failed");
-        }
-    }
-
-    ~MatrixData() {
-        delete[] data;
-    }
-};
-
 #define CANCEL_ROI m_data = sharedData->data; m_rows = sharedData->data_rows; m_cols = sharedData->data_cols; isROI = false;
 #define STEP sharedData->data_cols
 
 template <typename T>
 class Matrix {
 private:
+    template <typename U>
+    class MatrixData {
+    public:
+        size_t data_rows, data_cols;
+        U* data;
+        unsigned int refCount;
+
+        MatrixData() : refCount(0), data_rows(0), data_cols(0), data(nullptr) {};
+        MatrixData(size_t rows, size_t cols) : refCount(0), data_rows(rows), data_cols(cols), data(new U[rows * cols]) {};
+        MatrixData(const MatrixData<U> &other)
+                : refCount(0), data_rows(other.data_rows), data_cols(other.data_cols), data(new U[data_rows * data_cols]) {
+            std::copy(other.data, other.data + data_rows * data_cols, data);
+        }
+
+        inline static void allocateData(size_t rows, size_t cols, MatrixData<U>** pMatrixData) {
+            try {
+                *pMatrixData = new MatrixData<U>(rows, cols);
+            } catch (const std::bad_alloc&) {
+                throw std::runtime_error("Memory allocation failed");
+            }
+        }
+
+        inline static void copyData(const MatrixData<U> &other, MatrixData<U>** pMatrixData) {
+            try {
+                *pMatrixData = new MatrixData<U>(other);
+            } catch (const std::bad_alloc&) {
+                throw std::runtime_error("Memory allocation failed");
+            }
+        }
+
+        ~MatrixData() {
+            delete[] data;
+        }
+    };
+
     MatrixData<T>* sharedData;
     T* m_data;
     size_t m_rows, m_cols;
@@ -97,8 +93,8 @@ public:
         isROI = other.isROI;
     }
 
-    explicit Matrix(const string &matName) {
-        ifstream inFile(matName);
+    explicit Matrix(const string &fileName) {
+        ifstream inFile(fileName);
         if (inFile.is_open()) {
             inFile >> sharedData->data_rows >> sharedData->data_cols;
             MatrixData<T>::allocateData(sharedData->data_rows, sharedData->data_cols, &sharedData);
@@ -194,7 +190,6 @@ public:
         CANCEL_ROI
         *this = (*this).getROI(x, y, width, height);
     }
-
 
     inline void resize(size_t newRows, size_t newCols, T fill = 0) {
         if (newRows == sharedData->data_rows && newCols == sharedData->data_cols) {
@@ -314,7 +309,7 @@ public:
             throw std::invalid_argument("Matrix dimensions are invalid for multiplication");
         }
         if (m_rows >= 1024 && m_cols >= 1024 && other.m_cols >= 1024) {
-            cout << "Using block matrix multiplication" << endl;
+//            cout << "Using block matrix multiplication" << endl;
 #define BLOCK_SIZE 112
             const size_t padding_col = (m_cols % BLOCK_SIZE == 0) ? 0 : BLOCK_SIZE - m_cols % BLOCK_SIZE;
             const size_t padding_row = (m_rows % BLOCK_SIZE == 0) ? 0 : BLOCK_SIZE - m_rows % BLOCK_SIZE;
