@@ -1,0 +1,36 @@
+
+Old detach()
+//                MatrixData<T> *newData;
+//                MatrixData<T>::allocateData(m_rows, m_cols, &newData);
+//                sharedData->refCount++;
+//                T* data = newData->data;
+//                for (size_t r = 0; r < m_rows; r++) {
+//                    for (size_t c = 0; c < m_cols; c++) {
+//                        *(data++) = *(m_data + r * STEP + c);
+//                    }
+//                }
+//                replace_data(&sharedData, newData);
+
+Old resize()
+//        MatrixData<T>* newData;
+//        MatrixData<T>::allocateData(newRows, newCols, &newData);
+//        if (newRows > sharedData->data_rows || newCols > sharedData->data_cols) {
+//            fill_data(newData, fill);
+//        }
+//        size_t minRows = std::min(sharedData->data_rows, newRows);
+//        size_t minCols = std::min(sharedData->data_cols, newCols);
+//        for (size_t r = 0; r < minRows; r++) {
+//            for (size_t c = 0; c < minCols; c++) {
+//                newData->data[r * newCols + c] = sharedData->data[r * STEP + c];
+//            }
+//        }
+//        replace_data(&sharedData, newData);
+
+Discarded replace_data()
+//    inline static void replace_data(MatrixData<T>** originalData, MatrixData<T>* anotherData) {
+//        (*originalData)->refCount--;
+//        if ((*originalData)->refCount == 0) delete *originalData;
+//        *originalData = anotherData;
+//        anotherData->refCount++;
+//        cout << "refCount: " << anotherData->refCount << endl;
+//    }

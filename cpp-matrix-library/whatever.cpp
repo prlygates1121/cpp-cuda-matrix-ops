@@ -1,27 +1,20 @@
 #include "Matrix.h"
 
 int main() {
-    Matrix<int> a(5, 5, 9);
-    a(1, 1) = 0;
-    a(2, 2) = 1;
-    a(3, 3) = 2;
-    a(4, 4) = 3;
-    a.show();
-
-    Matrix<int> b = a;
-    b.show();
-
-    Matrix<int> a1(a.getSharedData(), 2, 2, 5, 5);
-    a1.show();
-
-    a1 = a1 * a1;
-    a1.show();
-    a.show();
-
-    Matrix<int> a2(a.getSharedData(), 0, 0, 3, 3);
-    a2.show();
-    a2.detach();
-
-    a2.show();
-    a.show();
+    // generate some crazy tests for the matrix class
+    Matrix<int> m1(5, 5, 0);
+    m1(0, 2) = 3;
+    m1(1, 1) = 4;
+    m1(1, 2) = 5;
+    m1(2, 1) = 6;
+    m1(2, 2) = 7;
+    m1(3, 1) = 8;
+    m1(3, 2) = 9;
+    m1(4, 1) = 10;
+    m1(4, 2) = 11;
+    m1.show_detailed();
+    Matrix<int> roi = m1.getROI(1, 1, 3, 3);
+    Matrix<int> roi2(2, 2, 2);
+    roi2 = roi;
+    roi2.show_detailed();
 }
