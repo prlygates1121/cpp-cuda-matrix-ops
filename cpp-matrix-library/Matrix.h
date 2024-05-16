@@ -55,35 +55,26 @@ private:
     size_t m_rows, m_cols;
     bool isROI;
 
-    inline static void fill_data(MatrixData<T>* matrixData, T value) {
-        size_t length = matrixData->data_rows * matrixData->data_cols;
-        std::fill(matrixData->data, matrixData->data + length, value);
-    }
-
 public:
-    // default constructor
     Matrix() {
         sharedData = new MatrixData<T>;
         sharedData->refCount++;
         CANCEL_ROI
     }
 
-    // constructor with size
     Matrix(size_t rows, size_t cols) {
         MatrixData<T>::allocateData(rows, cols, &sharedData);
         sharedData->refCount++;
         CANCEL_ROI
     };
 
-    // constructor with size and filling
     Matrix(size_t rows, size_t cols, T fill) {
         MatrixData<T>::allocateData(rows, cols, &sharedData);
-        fill_data(sharedData, fill);
+        std::fill(sharedData->data, sharedData->data + sharedData->data_rows * sharedData->data_cols, fill);
         sharedData->refCount++;
         CANCEL_ROI
     };
 
-    // copy constructor
     Matrix(const Matrix<T> &other) {
         sharedData = other.sharedData;
         sharedData->refCount++;
@@ -145,7 +136,6 @@ public:
                 }
                 *this = detached;
             }
-//            cout << "refCount: " << sharedData->refCount << endl;
         }
     }
 
@@ -156,9 +146,6 @@ public:
     }
 
     inline Matrix<T> getROI(size_t x, size_t y, size_t width, size_t height) {
-//        if (isROI) {
-//            throw std::invalid_argument("Cannot get ROI from a ROI matrix");
-//        }
         if (width == 0 || height == 0 ||
             x + width > m_cols ||
             y + height > m_rows ||
@@ -174,9 +161,7 @@ public:
     }
 
     inline void cancelROI() {
-        if (!isROI) {
-            return;
-        } else {
+        if (isROI) {
             CANCEL_ROI
         }
     }
@@ -195,7 +180,7 @@ public:
         }
         Matrix<T> resized(newRows, newCols);
         if (newRows > sharedData->data_rows || newCols > sharedData->data_cols) {
-            fill_data(resized.sharedData, fill);
+            std::fill(resized.sharedData->data, resized.sharedData->data + resized.sharedData->data_rows * resized.sharedData->data_cols, fill);
         }
         size_t minRows = std::min(sharedData->data_rows, newRows);
         size_t minCols = std::min(sharedData->data_cols, newCols);
@@ -249,16 +234,10 @@ public:
         Matrix<T> res(m_rows, m_cols);
         if (!isROI && !other.isROI) {
             size_t length = sharedData->data_rows * sharedData->data_cols;
-//            const T* lhs = sharedData->data;
-//            const T* rhs = other.sharedData->data;
-//            T* data = res.sharedData->data;
 #pragma omp parallel for
             for (size_t i = 0; i < length; i++) {
                 res.sharedData->data[i] = sharedData->data[i] + other.sharedData->data[i];
             }
-//            for (size_t i = 0; i < length; i++) {
-//                *(data++) = *(lhs++) + *(rhs++);
-//            }
         } else {
 #pragma omp parallel for collapse(2)
             for (size_t r = 0; r < m_rows; r++) {
@@ -282,9 +261,6 @@ public:
         Matrix<T> res(m_rows, m_cols);
         if (!isROI && !other.isROI) {
             size_t length = sharedData->data_rows * sharedData->data_cols;
-//            const T* lhs = sharedData->data;
-//            const T* rhs = other.sharedData->data;
-//            T* data = res.sharedData->data;
 #pragma omp parallel for
             for (size_t i = 0; i < length; i++) {
                 res.sharedData->data[i] = sharedData->data[i] - other.sharedData->data[i];
@@ -310,7 +286,6 @@ public:
             throw std::invalid_argument("Matrix dimensions are invalid for multiplication");
         }
         if (m_rows >= 1024 && m_cols >= 1024 && other.m_cols >= 1024) {
-//            cout << "Using block matrix multiplication" << endl;
 #define BLOCK_SIZE 112
             const size_t padding_col = (m_cols % BLOCK_SIZE == 0) ? 0 : BLOCK_SIZE - m_cols % BLOCK_SIZE;
             const size_t padding_row = (m_rows % BLOCK_SIZE == 0) ? 0 : BLOCK_SIZE - m_rows % BLOCK_SIZE;
@@ -446,7 +421,7 @@ public:
 
     inline void fill(T value) {
         if (!isROI)
-            fill_data(sharedData, value);
+            std::fill(sharedData->data, sharedData->data + sharedData->data_rows * sharedData->data_cols, value);
         else
             for (size_t r = 0; r < m_rows; r++) {
                 for (size_t c = 0; c < m_cols; c++) {

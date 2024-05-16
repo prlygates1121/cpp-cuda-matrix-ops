@@ -6,13 +6,11 @@ set(CMAKE_CXX_STANDARD 17)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp -march=native")
 
-add_executable(Project4 Matrix.cpp Matrix.h
+add_executable(Project4 Matrix.h
         matmul_efficiency_test.cpp
         algebra_gtest.cpp
         pointer_gtest.cpp
-        whatever.cpp
         matmul_correctness_test.cpp
-        Code.cpp
         ROI_gtest.cpp
 )
 
