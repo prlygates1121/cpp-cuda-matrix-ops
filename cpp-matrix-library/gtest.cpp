@@ -1,5 +1,5 @@
 #include "gtest/gtest.h"
-#include "Matrix.h"  // Include your Matrix class header
+#include "matrix.h"  // Include your Matrix class header
 
 #define EDGE 3333
 
@@ -9,7 +9,6 @@ protected:
     Matrix<int> matrix;
 
     void SetUp() override {
-        // Setup a default matrix 10x10 filled with sequential numbers
         matrix = Matrix<int>(EDGE, EDGE, EDGE);
         int value = 0;
         for (int i = 0; i < EDGE; ++i) {
