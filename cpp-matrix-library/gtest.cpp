@@ -52,19 +52,45 @@ TEST_F(MatrixEffectivenessTest, AdjustROIOutsideBounds) {
 TEST_F(MatrixEffectivenessTest, ConsecutiveROIOperations) {
     Matrix<int> roi = matrix.getROI(1, 1, 8, 8);
     roi = roi.getROI(1, 1, 6, 6);
-    EXPECT_EQ(roi.getSharedData()->refCount, 2);
-    EXPECT_EQ(roi.getMRows(), 6);
-    EXPECT_EQ(roi.getMCols(), 6);
+    EXPECT_EQ(roi.getDataRefCount(), 2);
     EXPECT_EQ(roi(0, 0), matrix(2, 2));
     roi = roi.getROI(1, 1, 4, 4);
-    EXPECT_EQ(roi.getSharedData()->refCount, 2);
-    EXPECT_EQ(roi.getMRows(), 4);
-    EXPECT_EQ(roi.getMCols(), 4);
+    EXPECT_EQ(roi.getDataRefCount(), 2);
     EXPECT_EQ(roi(1, 1), matrix(4, 4));
     Matrix<int> roi2 = roi.getROI(1, 1, 2, 2);
-    EXPECT_EQ(roi2.getSharedData()->refCount, 3);
+    EXPECT_EQ(roi2.getDataRefCount(), 3);
     EXPECT_EQ(roi2(1, 1), matrix(5, 5));
 }
+
+TEST_F(MatrixEffectivenessTest, CancelROI) {
+    Matrix<int> roi = matrix.getROI(2, 2, 5, 5);
+    EXPECT_EQ(roi.getDataRefCount(), 2);
+    roi.cancelROI();
+    EXPECT_EQ(roi.getMRows(), EDGE);
+    EXPECT_EQ(roi.getMCols(), EDGE);
+    roi.fill(999);
+    EXPECT_EQ(matrix(2, 2), 999);
+}
+
+TEST_F(MatrixEffectivenessTest, ROIReferenceCount) {
+    Matrix<int> roi = matrix.getROI(2, 2, 5, 5);
+    EXPECT_EQ(roi.getDataRefCount(), 2);
+    Matrix<int> roi2 = roi;
+    EXPECT_EQ(roi.getDataRefCount(), 3);
+    roi2.cancelROI();
+    EXPECT_EQ(roi.getDataRefCount(), 3);
+    roi2.detach();
+    EXPECT_EQ(roi.getDataRefCount(), 2);
+    roi.detach();
+    EXPECT_EQ(roi.getDataRefCount(), 1);
+    // test adjustROI's reference count
+    roi = matrix.getROI(2, 2, 5, 5);
+    roi.adjustROI(1, 1, 3, 3);
+    EXPECT_EQ(roi.getDataRefCount(), 2);
+    roi2 = roi;
+    EXPECT_EQ(roi.getDataRefCount(), 3);
+}
+
 
 TEST_F(MatrixEffectivenessTest, EditViaROI) {
     Matrix<int> roi = matrix.getROI(2, 2, 5, 5);
@@ -74,6 +100,43 @@ TEST_F(MatrixEffectivenessTest, EditViaROI) {
     matrix(2, 2) = 200;
     EXPECT_EQ(roi(0, 0), 200);
     EXPECT_EQ(matrix(2, 2), 200);
+}
+
+// detach
+TEST_F(MatrixEffectivenessTest, DetachEnthusiast) {
+    Matrix<int> a = matrix;
+    EXPECT_EQ(a.getDataRefCount(), 2);
+    a.detach();
+    EXPECT_EQ(a.getDataRefCount(), 1);
+    a.detach();
+    EXPECT_EQ(a.getDataRefCount(), 1);
+    matrix.detach();
+    EXPECT_EQ(matrix.getDataRefCount(), 1);
+    a = matrix;
+    EXPECT_EQ(a.getDataRefCount(), 2);
+    matrix.detach();
+    EXPECT_EQ(a.getDataRefCount(), 1);
+    EXPECT_EQ(matrix.getDataRefCount(), 1);
+}
+
+// Test ROI detachment
+TEST_F(MatrixEffectivenessTest, DetachROI) {
+    EXPECT_EQ(matrix.getDataRefCount(), 1);
+    Matrix<int> roi = matrix.getROI(2, 2, 5, 5);
+    EXPECT_EQ(matrix.getDataRefCount(), 2);
+    roi.detach();
+    EXPECT_EQ(roi.getDataRefCount(), 1);
+    EXPECT_EQ(matrix.getDataRefCount(), 1);
+    roi.fill(999);
+    EXPECT_NE(matrix(2, 2), 999);
+}
+
+// Test resize() function
+TEST_F(MatrixEffectivenessTest, ResizeMatrix) {
+    matrix.resize(EDGE + 1, EDGE + 1, 0);
+    EXPECT_EQ(matrix.getMRows(), EDGE + 1);
+    EXPECT_EQ(matrix.getMCols(), EDGE + 1);
+    EXPECT_EQ(matrix(EDGE, EDGE), 0);
 }
 
 // Test addition of two matrices of the same size

@@ -14,24 +14,20 @@ using namespace std;
 
 template <typename T>
 class Matrix {
-private:
+
     template <typename U>
     class MatrixData {
     public:
-        size_t data_rows, data_cols;
+        const size_t data_rows, data_cols;
         U* data;
         unsigned int refCount;
 
-        MatrixData();
         MatrixData(size_t rows, size_t cols);
-        MatrixData(const MatrixData<U>& other);
-
         inline static void allocateData(size_t rows, size_t cols, MatrixData<U>** pMatrixData);
-        inline static void copyData(const MatrixData<U>& other, MatrixData<U>** pMatrixData);
-
         ~MatrixData();
     };
 
+private:
     MatrixData<T>* sharedData;
     T* m_data;
     size_t m_rows, m_cols;
@@ -47,11 +43,11 @@ public:
 
     [[nodiscard]] size_t getMCols() const;
     [[nodiscard]] size_t getMRows() const;
-    [[nodiscard]] MatrixData<T>* getSharedData() const;
+    [[nodiscard]] unsigned int getDataRefCount() const;
 
     inline void detach();
-    inline Matrix<T> clone();
-    inline Matrix<T> getROI(size_t x, size_t y, size_t width, size_t height);
+    inline Matrix<T> clone() const;
+    inline Matrix<T> getROI(size_t x, size_t y, size_t width, size_t height) const;
     inline void cancelROI();
     inline void adjustROI(size_t x, size_t y, size_t width, size_t height);
     inline void resize(size_t newRows, size_t newCols, T fill = 0);
