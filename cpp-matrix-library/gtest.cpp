@@ -19,6 +19,78 @@ protected:
     }
 };
 
+// Test memory allocation failure
+TEST_F(MatrixEffectivenessTest, MemoryAllocationFailure) {
+    EXPECT_THROW(Matrix<int>(999999, 999999, 9), std::bad_alloc);
+    EXPECT_THROW(matrix.resize(999999, 999999), std::bad_alloc);
+}
+
+// Test empty matrices
+TEST_F(MatrixEffectivenessTest, EmptyMatrixValidation) {
+    Matrix<int> empty;
+    // no addition for empty
+    EXPECT_THROW(empty = empty + empty, std::invalid_argument);
+    // no multiplication for empty
+    EXPECT_THROW(empty = empty * empty, std::invalid_argument);
+    // no scalar multiplication for empty
+    EXPECT_THROW(empty = empty * 2, std::invalid_argument);
+    // no reversed scalar multiplication for empty
+    EXPECT_THROW(empty = 2 * empty, std::invalid_argument);
+    // no clone/detach for empty
+    EXPECT_THROW(empty.detach(), std::invalid_argument);
+    EXPECT_THROW(matrix = empty.clone(), std::invalid_argument);
+    // no resize for empty
+    EXPECT_THROW(empty.resize(3, 3), std::invalid_argument);
+    // no element access for empty
+    EXPECT_THROW(empty(0, 0), std::out_of_range);
+    // compare empty and another empty
+    Matrix<int> empty2;
+    EXPECT_EQ(empty, empty2);
+    // compare empty and non-empty
+    EXPECT_NE(empty, matrix);
+    // construct empty via copy constructor
+    Matrix<int> matrix1(empty);
+    EXPECT_EQ(matrix1, empty);
+    // assign empty to empty
+    Matrix<int> empty3;
+    empty3 = empty;
+    EXPECT_EQ(empty3, empty);
+    // assign non-empty to empty
+    Matrix<int> empty4;
+    empty4 = matrix;
+    EXPECT_EQ(empty4, matrix);
+    // assign empty to non-empty
+    Matrix<int> matrix2(3, 3, 3);
+    matrix2 = empty;
+    EXPECT_EQ(matrix2, empty);
+    // no roi for empty
+    Matrix<int> roi;
+    EXPECT_THROW(roi = empty.getROI(2, 2, 4, 4), std::invalid_argument);
+    // no fill for empty
+    EXPECT_THROW(empty.fill(4), std::invalid_argument);
+    // save empty
+    empty.save("GOOD.txt");
+}
+
+// Test constructor with fill
+TEST_F(MatrixEffectivenessTest, FillConstructor) {
+    Matrix<int> filled(EDGE, EDGE, 9);
+    for (int i = 0; i < EDGE; ++i) {
+        for (int j = 0; j < EDGE; ++j) {
+            EXPECT_EQ(filled(i, j), 9);
+        }
+    }
+}
+
+// Test Clone function
+TEST_F(MatrixEffectivenessTest, CloneMatrix) {
+    Matrix<int> clone = matrix.clone();
+    EXPECT_EQ(clone.getMRows(), matrix.getMRows());
+    EXPECT_EQ(clone.getMCols(), matrix.getMCols());
+    EXPECT_EQ(clone.getDataRefCount(), 1);
+    EXPECT_EQ(clone, matrix);
+}
+
 // Test extraction of a valid ROI
 TEST_F(MatrixEffectivenessTest, ValidROIExtraction) {
     Matrix<int> roi = matrix.getROI(2, 2, 5, 5);
@@ -102,7 +174,7 @@ TEST_F(MatrixEffectivenessTest, EditViaROI) {
     EXPECT_EQ(matrix(2, 2), 200);
 }
 
-// detach
+// Explicit detach test
 TEST_F(MatrixEffectivenessTest, DetachEnthusiast) {
     Matrix<int> a = matrix;
     EXPECT_EQ(a.getDataRefCount(), 2);
@@ -119,6 +191,18 @@ TEST_F(MatrixEffectivenessTest, DetachEnthusiast) {
     EXPECT_EQ(matrix.getDataRefCount(), 1);
 }
 
+// Implicit detach test
+TEST_F(MatrixEffectivenessTest, DetachEnthusiastImplicit) {
+    Matrix<int> a = matrix;
+    EXPECT_EQ(a.getDataRefCount(), 2);
+    a = a * 2;
+    EXPECT_EQ(a.getDataRefCount(), 1);
+    Matrix<int> b = matrix.getROI(2, 2, 5, 5);
+    EXPECT_EQ(b.getDataRefCount(), 2);
+    b += b;
+    EXPECT_EQ(b.getDataRefCount(), 1);
+}
+
 // Test ROI detachment
 TEST_F(MatrixEffectivenessTest, DetachROI) {
     EXPECT_EQ(matrix.getDataRefCount(), 1);
@@ -133,10 +217,16 @@ TEST_F(MatrixEffectivenessTest, DetachROI) {
 
 // Test resize() function
 TEST_F(MatrixEffectivenessTest, ResizeMatrix) {
+    Matrix<int> matrixClone = matrix.clone();
     matrix.resize(EDGE + 1, EDGE + 1, 0);
     EXPECT_EQ(matrix.getMRows(), EDGE + 1);
     EXPECT_EQ(matrix.getMCols(), EDGE + 1);
     EXPECT_EQ(matrix(EDGE, EDGE), 0);
+    Matrix<int> roi = matrix.getROI(0, 0, EDGE, EDGE);
+    EXPECT_EQ(roi, matrixClone);
+    matrix.resize(EDGE - 1, EDGE - 1, 0);
+    EXPECT_EQ(matrix.getMRows(), EDGE - 1);
+    EXPECT_EQ(matrix.getMCols(), EDGE - 1);
 }
 
 // Test addition of two matrices of the same size
@@ -166,6 +256,13 @@ TEST_F(MatrixEffectivenessTest, ValidMatrixSubtraction) {
             EXPECT_EQ(result(i, j), 0);
         }
     }
+}
+
+// Test I/O operations
+TEST_F(MatrixEffectivenessTest, IOTest) {
+    matrix.save("test.txt");
+    Matrix<int> matrix2("test.txt");
+    EXPECT_EQ(matrix, matrix2);
 }
 
 // Test matrix multiplication

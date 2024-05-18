@@ -9,7 +9,8 @@
 
 using namespace std;
 
-#define CANCEL_ROI m_data = sharedData->data; m_rows = sharedData->data_rows; m_cols = sharedData->data_cols; isROI = false;
+#define MAKE_FULL m_data = sharedData->data; m_rows = sharedData->data_rows; m_cols = sharedData->data_cols; isROI = false;
+#define MAKE_NONE sharedData = nullptr; m_data = nullptr; m_rows = 0; m_cols = 0; isROI = false;
 #define STEP sharedData->data_cols
 
 template <typename T>
@@ -23,7 +24,6 @@ class Matrix {
         unsigned int refCount;
 
         MatrixData(size_t rows, size_t cols);
-        inline static void allocateData(size_t rows, size_t cols, MatrixData<U>** pMatrixData);
         ~MatrixData();
     };
 

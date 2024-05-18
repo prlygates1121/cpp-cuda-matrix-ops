@@ -2,16 +2,8 @@
 
 template <typename T>
 template <typename U>
-Matrix<T>::MatrixData<U>::MatrixData(size_t rows, size_t cols) : refCount(0), data_rows(rows), data_cols(cols), data(new U[rows * cols]) {}
-
-template <typename T>
-template <typename U>
-inline void Matrix<T>::MatrixData<U>::allocateData(size_t rows, size_t cols, MatrixData<U>** pMatrixData) {
-    try {
-        *pMatrixData = new MatrixData<U>(rows, cols);
-    } catch (const std::bad_alloc&) {
-        throw std::runtime_error("Memory allocation failed");
-    }
+Matrix<T>::MatrixData<U>::MatrixData(size_t rows, size_t cols) : data_rows(rows), data_cols(cols), refCount(0) {
+    data = new U[rows * cols];
 }
 
 template <typename T>
@@ -22,34 +14,36 @@ Matrix<T>::MatrixData<U>::~MatrixData() {
 
 template <typename T>
 Matrix<T>::Matrix() {
-    MatrixData<T>::allocateData(0, 0, &sharedData);
-    sharedData->refCount++;
-    CANCEL_ROI
+    MAKE_NONE
 }
 
 template <typename T>
 Matrix<T>::Matrix(size_t rows, size_t cols) {
-    MatrixData<T>::allocateData(rows, cols, &sharedData);
+    if (rows == 0 || cols == 0) {
+        throw std::invalid_argument("Invalid matrix dimensions");
+    }
+    sharedData = new MatrixData<T>(rows, cols);
     sharedData->refCount++;
-    CANCEL_ROI
+    MAKE_FULL
 }
 
 template <typename T>
-Matrix<T>::Matrix(size_t rows, size_t cols, T fill) {
-    MatrixData<T>::allocateData(rows, cols, &sharedData);
+Matrix<T>::Matrix(size_t rows, size_t cols, T fill) : Matrix(rows, cols) {
     std::fill(sharedData->data, sharedData->data + sharedData->data_rows * sharedData->data_cols, fill);
-    sharedData->refCount++;
-    CANCEL_ROI
 }
 
 template <typename T>
 Matrix<T>::Matrix(const Matrix<T>& other) {
-    sharedData = other.sharedData;
-    sharedData->refCount++;
-    m_data = other.m_data;
-    m_rows = other.m_rows;
-    m_cols = other.m_cols;
-    isROI = other.isROI;
+    if (other.sharedData != nullptr) {
+        sharedData = other.sharedData;
+        sharedData->refCount++;
+        m_data = other.m_data;
+        m_rows = other.m_rows;
+        m_cols = other.m_cols;
+        isROI = other.isROI;
+    } else {
+        MAKE_NONE
+    }
 }
 
 template <typename T>
@@ -58,14 +52,18 @@ Matrix<T>::Matrix(const string& fileName) {
     if (inFile.is_open()) {
         size_t rows, cols;
         inFile >> rows >> cols;
-        MatrixData<T>::allocateData(rows, cols, &sharedData);
-        sharedData->refCount++;
-        size_t length = sharedData->data_rows * sharedData->data_cols;
-        T* data = sharedData->data;
-        for (size_t i = 0; i < length; i++) {
-            inFile >> *(data++);
+        if (rows != 0 && cols != 0) {
+            sharedData = new MatrixData<T>(rows, cols);
+            sharedData->refCount++;
+            size_t length = sharedData->data_rows * sharedData->data_cols;
+            T* data = sharedData->data;
+            for (size_t i = 0; i < length; i++) {
+                inFile >> *(data++);
+            }
+            MAKE_FULL
+        } else {
+            MAKE_NONE
         }
-        CANCEL_ROI
         inFile.close();
     } else {
         cout << "Unable to load the matrix" << endl;
@@ -74,7 +72,7 @@ Matrix<T>::Matrix(const string& fileName) {
 
 template <typename T>
 Matrix<T>::~Matrix() {
-    if (--sharedData->refCount == 0) {
+    if (sharedData != nullptr && --sharedData->refCount == 0) {
         delete sharedData;
     }
 }
@@ -102,9 +100,11 @@ inline void Matrix<T>::detach() {
 template <typename T>
 inline Matrix<T> Matrix<T>::clone() const{
     Matrix<T> newMatrix(m_rows, m_cols);
-    for (size_t r = 0; r < m_rows; r++) {
-        for (size_t c = 0; c < m_cols; c++) {
-            *(newMatrix.m_data + r * newMatrix.STEP + c) = *(m_data + r * STEP + c);
+    if (!isROI) {
+        memcpy(newMatrix.sharedData->data, sharedData->data, sharedData->data_rows * sharedData->data_cols * sizeof(T));
+    } else {
+        for (size_t r = 0; r < m_rows; r++) {
+            memcpy(newMatrix.m_data + r * newMatrix.STEP, m_data + r * STEP, m_cols * sizeof(T));
         }
     }
     return newMatrix;
@@ -115,6 +115,7 @@ inline Matrix<T> Matrix<T>::getROI(size_t x, size_t y, size_t width, size_t heig
     if (width == 0 || height == 0 ||
         x + width > m_cols || y + height > m_rows ||
         (x == 0 && y == 0 && width == m_cols && height == m_rows)) {
+
         throw std::invalid_argument("Invalid ROI range");
     }
     Matrix<T> roi = (*this);
@@ -128,7 +129,7 @@ inline Matrix<T> Matrix<T>::getROI(size_t x, size_t y, size_t width, size_t heig
 template <typename T>
 inline void Matrix<T>::cancelROI() {
     if (isROI) {
-        CANCEL_ROI
+        MAKE_FULL
     }
 }
 
@@ -137,12 +138,15 @@ inline void Matrix<T>::adjustROI(size_t x, size_t y, size_t width, size_t height
     if (!isROI) {
         throw std::invalid_argument("Cannot adjust ROI from a non-ROI matrix");
     }
-    CANCEL_ROI
+    MAKE_FULL
     *this = (*this).getROI(x, y, width, height);
 }
 
 template <typename T>
 inline void Matrix<T>::resize(size_t newRows, size_t newCols, T fill) {
+    if (sharedData == nullptr) {
+        throw std::invalid_argument("Do not resize an empty matrix");
+    }
     if (newRows == sharedData->data_rows && newCols == sharedData->data_cols) {
         return;
     }
@@ -153,18 +157,20 @@ inline void Matrix<T>::resize(size_t newRows, size_t newCols, T fill) {
     size_t minRows = std::min(sharedData->data_rows, newRows);
     size_t minCols = std::min(sharedData->data_cols, newCols);
     for (size_t r = 0; r < minRows; r++) {
-        for (size_t c = 0; c < minCols; c++) {
-            *(resized.m_data + r * resized.STEP + c) = *(sharedData->data + r * STEP + c);
-        }
+        memcpy(resized.sharedData->data + r * resized.STEP, sharedData->data + r * STEP, minCols * sizeof(T));
     }
     *this = resized;
 }
 
 template <typename T>
 inline Matrix<T>& Matrix<T>::operator=(const Matrix<T>& other) {
-    if (this != &other || sharedData != other.sharedData) {
-        sharedData->refCount--;
-        if (sharedData->refCount == 0) delete sharedData;
+    if (other.sharedData == nullptr) {
+        MAKE_NONE
+    } else if (this != &other || sharedData != other.sharedData) {
+        if (sharedData != nullptr) {
+            sharedData->refCount--;
+            if (sharedData->refCount == 0) delete sharedData;
+        }
         sharedData = other.sharedData;
         sharedData->refCount++;
         m_data = other.m_data;
@@ -405,18 +411,23 @@ inline Matrix<T> Matrix<T>::plain_multiply(const Matrix<T>& other) const {
 
 template <typename T>
 inline void Matrix<T>::fill(T value) {
+    if (sharedData == nullptr) {
+        throw std::invalid_argument("Do not fill an empty matrix");
+    }
     if (!isROI)
         std::fill(sharedData->data, sharedData->data + sharedData->data_rows * sharedData->data_cols, value);
     else
         for (size_t r = 0; r < m_rows; r++) {
-            for (size_t c = 0; c < m_cols; c++) {
-                *(m_data + r * STEP + c) = value;
-            }
+            std::fill(m_data + r * STEP, m_data + r * STEP + m_cols, value);
         }
 }
 
 template <typename T>
 void Matrix<T>::show_detailed() {
+    if (sharedData == nullptr) {
+        cout << "Do not print an empty matrix" << endl;
+        return;
+    }
     cout << "-----------MatrixData-----------" << endl;
     size_t length = sharedData->data_rows * sharedData->data_cols;
     for (size_t i = 0; i < length; i++) {
@@ -441,6 +452,10 @@ void Matrix<T>::show_detailed() {
 
 template <typename T>
 void Matrix<T>::show() {
+    if (sharedData == nullptr) {
+        cout << "Do not print an empty matrix" << endl;
+        return;
+    }
     for (size_t r = 0; r < m_rows; r++) {
         for (size_t c = 0; c < m_cols; c++) {
             cout << (*this)(r, c) << " ";
@@ -449,5 +464,5 @@ void Matrix<T>::show() {
     }
 }
 
-#undef CANCEL_ROI
+#undef MAKE_FULL
 #undef STEP

@@ -47,7 +47,7 @@ Old Matrix.h
 
 using namespace std;
 
-#define CANCEL_ROI m_data = sharedData->data; m_rows = sharedData->data_rows; m_cols = sharedData->data_cols; isROI = false;
+#define MAKE_FULL m_data = sharedData->data; m_rows = sharedData->data_rows; m_cols = sharedData->data_cols; isROI = false;
 #define STEP sharedData->data_cols
 
 template <typename T>
@@ -97,20 +97,20 @@ public:
     Matrix() {
         sharedData = new MatrixData<T>;
         sharedData->refCount++;
-        CANCEL_ROI
+        MAKE_FULL
     }
 
     Matrix(size_t rows, size_t cols) {
         MatrixData<T>::allocateData(rows, cols, &sharedData);
         sharedData->refCount++;
-        CANCEL_ROI
+        MAKE_FULL
     };
 
     Matrix(size_t rows, size_t cols, T fill) {
         MatrixData<T>::allocateData(rows, cols, &sharedData);
         std::fill(sharedData->data, sharedData->data + sharedData->data_rows * sharedData->data_cols, fill);
         sharedData->refCount++;
-        CANCEL_ROI
+        MAKE_FULL
     };
 
     Matrix(const Matrix<T> &other) {
@@ -132,7 +132,7 @@ public:
             for (size_t i = 0; i < length; i++) {
                 inFile >> *(data++);
             }
-            CANCEL_ROI
+            MAKE_FULL
             inFile.close();
         } else {
             cout << "Unable to load the matrix" << endl;
@@ -200,7 +200,7 @@ public:
 
     inline void cancelROI() {
         if (isROI) {
-            CANCEL_ROI
+            MAKE_FULL
         }
     }
 
@@ -208,7 +208,7 @@ public:
         if (!isROI) {
             throw std::invalid_argument("Cannot adjust ROI from a non-ROI matrix");
         }
-        CANCEL_ROI
+        MAKE_FULL
         *this = (*this).getROI(x, y, width, height);
     }
 
@@ -501,7 +501,7 @@ public:
     }
 };
 
-#undef CANCEL_ROI
+#undef MAKE_FULL
 #undef STEP
 
 #endif //PROJECT4_MATRIX_H
