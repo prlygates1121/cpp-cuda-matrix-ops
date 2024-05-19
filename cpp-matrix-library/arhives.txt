@@ -505,3 +505,22 @@ public:
 #undef STEP
 
 #endif //PROJECT4_MATRIX_H
+
+Old plain_multiply()
+template <typename T>
+inline Matrix<T> Matrix<T>::plain_multiply(const Matrix<T>& other) const {
+    if (m_cols != other.m_rows) {
+        throw std::invalid_argument("Matrix dimensions are invalid for multiplication");
+    }
+    Matrix<T> result(m_rows, other.m_cols, 0);
+#pragma omp parallel for
+    for (size_t r = 0; r < m_rows; r++) {
+        for (size_t k = 0; k < m_cols; k++) {
+            for (size_t c = 0; c < other.m_cols; c++) {
+                *(result.m_data + r * result.STEP + c) += *(m_data + r * STEP + k) * *(other.m_data + k * other.STEP + c);
+            }
+        }
+    }
+    return result;
+}
+

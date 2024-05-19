@@ -22,7 +22,6 @@ class Matrix {
         const size_t data_rows, data_cols;
         U* data;
         unsigned int refCount;
-
         MatrixData(size_t rows, size_t cols);
         ~MatrixData();
     };
@@ -71,7 +70,6 @@ public:
     inline T& operator()(size_t row, size_t col);
 
     inline void save(const string& fileName);
-    inline Matrix<T> plain_multiply(const Matrix<T>& other) const;
     inline void fill(T value);
     inline void show_detailed();
     inline void show();

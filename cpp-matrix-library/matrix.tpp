@@ -1,10 +1,7 @@
-#include "matrix.h"
-
 template <typename T>
 template <typename U>
-Matrix<T>::MatrixData<U>::MatrixData(size_t rows, size_t cols) : data_rows(rows), data_cols(cols), refCount(0) {
-    data = new U[rows * cols];
-}
+Matrix<T>::MatrixData<U>::MatrixData(size_t rows, size_t cols) :
+    data_rows(rows), data_cols(cols), refCount(0), data(new U[rows * cols]) {}
 
 template <typename T>
 template <typename U>
@@ -20,7 +17,7 @@ Matrix<T>::Matrix() {
 template <typename T>
 Matrix<T>::Matrix(size_t rows, size_t cols) {
     if (rows == 0 || cols == 0) {
-        throw std::invalid_argument("Invalid matrix dimensions");
+        throw std::invalid_argument("Do not create a non-empty matrix with zero rows or columns");
     }
     sharedData = new MatrixData<T>(rows, cols);
     sharedData->refCount++;
@@ -115,7 +112,6 @@ inline Matrix<T> Matrix<T>::getROI(size_t x, size_t y, size_t width, size_t heig
     if (width == 0 || height == 0 ||
         x + width > m_cols || y + height > m_rows ||
         (x == 0 && y == 0 && width == m_cols && height == m_rows)) {
-
         throw std::invalid_argument("Invalid ROI range");
     }
     Matrix<T> roi = (*this);
@@ -392,22 +388,7 @@ inline void Matrix<T>::save(const string& fileName) {
     }
 }
 
-template <typename T>
-inline Matrix<T> Matrix<T>::plain_multiply(const Matrix<T>& other) const {
-    if (m_cols != other.m_rows) {
-        throw std::invalid_argument("Matrix dimensions are invalid for multiplication");
-    }
-    Matrix<T> result(m_rows, other.m_cols, 0);
-#pragma omp parallel for
-    for (size_t r = 0; r < m_rows; r++) {
-        for (size_t k = 0; k < m_cols; k++) {
-            for (size_t c = 0; c < other.m_cols; c++) {
-                *(result.m_data + r * result.STEP + c) += *(m_data + r * STEP + k) * *(other.m_data + k * other.STEP + c);
-            }
-        }
-    }
-    return result;
-}
+
 
 template <typename T>
 inline void Matrix<T>::fill(T value) {

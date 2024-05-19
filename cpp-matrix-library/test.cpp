@@ -30,6 +30,8 @@ TEST_F(MatrixEffectivenessTest, EmptyMatrixValidation) {
     Matrix<int> empty;
     // no addition for empty
     EXPECT_THROW(empty = empty + empty, std::invalid_argument);
+    // noa addition for empty and non-empty
+    EXPECT_THROW(empty = empty + matrix, std::invalid_argument);
     // no multiplication for empty
     EXPECT_THROW(empty = empty * empty, std::invalid_argument);
     // no scalar multiplication for empty
@@ -70,6 +72,9 @@ TEST_F(MatrixEffectivenessTest, EmptyMatrixValidation) {
     EXPECT_THROW(empty.fill(4), std::invalid_argument);
     // save empty
     empty.save("GOOD.txt");
+    // load empty
+    Matrix<int> empty5("GOOD.txt");
+    EXPECT_EQ(empty, empty5);
 }
 
 // Test constructor with fill
@@ -80,6 +85,17 @@ TEST_F(MatrixEffectivenessTest, FillConstructor) {
             EXPECT_EQ(filled(i, j), 9);
         }
     }
+}
+
+// Test self assignment
+TEST_F(MatrixEffectivenessTest, SelfAssignment) {
+    matrix = matrix;
+    EXPECT_EQ(matrix.getDataRefCount(), 1);
+    Matrix<int> matrix2 = matrix;
+    matrix2 = matrix;
+    EXPECT_EQ(matrix.getDataRefCount(), 2);
+    matrix2.detach();
+    matrix2 = matrix;
 }
 
 // Test Clone function
@@ -132,6 +148,19 @@ TEST_F(MatrixEffectivenessTest, ConsecutiveROIOperations) {
     Matrix<int> roi2 = roi.getROI(1, 1, 2, 2);
     EXPECT_EQ(roi2.getDataRefCount(), 3);
     EXPECT_EQ(roi2(1, 1), matrix(5, 5));
+}
+
+// Test ROI assignment
+TEST_F(MatrixEffectivenessTest, ROIAssignment) {
+    Matrix<int> roi = matrix.getROI(2, 2, 5, 5);
+    Matrix<int> roi2 = matrix.getROI(1, 2, 3, 5);
+    roi = roi2;
+    EXPECT_EQ(roi, roi2);
+    EXPECT_EQ(roi.getDataRefCount(), 3);
+    Matrix<int> matrix2(5, 5);
+    matrix2 = roi;
+    EXPECT_EQ(matrix2, roi);
+    EXPECT_EQ(matrix2.getDataRefCount(), 4);
 }
 
 TEST_F(MatrixEffectivenessTest, CancelROI) {
@@ -267,13 +296,14 @@ TEST_F(MatrixEffectivenessTest, IOTest) {
 
 // Test matrix multiplication
 TEST_F(MatrixEffectivenessTest, ValidMatrixMultiplication) {
-    Matrix<int> matrix2(EDGE, EDGE, 1); // Matrix of ones
-    Matrix<int> result = matrix * matrix2;
+    Matrix<int> matrix1(1028, 1025, 1); // Matrix of ones
+    Matrix<int> matrix2(1025, 1029, 1); // Matrix of ones
+    Matrix<int> result = matrix1 * matrix2;
 
-    for (int i = 0; i < matrix.getMRows(); ++i) {
+    for (int i = 0; i < matrix1.getMRows(); ++i) {
         int expectedValue = 0;
-        for (int j = 0; j < matrix.getMCols(); ++j) {
-            expectedValue += matrix(i, j);
+        for (int j = 0; j < matrix1.getMCols(); ++j) {
+            expectedValue += matrix1(i, j);
         }
         for (int j = 0; j < matrix2.getMCols(); ++j) {
             EXPECT_EQ(result(i, j), expectedValue);
@@ -285,7 +315,6 @@ TEST_F(MatrixEffectivenessTest, ValidMatrixMultiplication) {
 TEST_F(MatrixEffectivenessTest, ScalarMultiplication) {
     int scalar = 2;
     Matrix<int> result = matrix * scalar;
-
     for (int i = 0; i < matrix.getMRows(); ++i) {
         for (int j = 0; j < matrix.getMCols(); ++j) {
             EXPECT_EQ(result(i, j), matrix(i, j) * scalar);
@@ -300,7 +329,6 @@ TEST_F(MatrixEffectivenessTest, MatrixMultiplicationDimensionMismatch) {
 }
 
 
-// Add this line to your test file to run all tests
 int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
