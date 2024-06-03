@@ -1,11 +1,14 @@
 template <typename T>
 template <typename U>
 Matrix<T>::MatrixData<U>::MatrixData(size_t rows, size_t cols) :
-    data_rows(rows), data_cols(cols), refCount(0), data(new U[rows * cols]) {}
+    data_rows(rows), data_cols(cols), refCount(0), data(new U[rows * cols]) {
+    cout << "MatrixData constructor called" << endl;
+}
 
 template <typename T>
 template <typename U>
 Matrix<T>::MatrixData<U>::~MatrixData() {
+    cout << "MatrixData destructor called" << endl;
     delete[] data;
 }
 
@@ -31,6 +34,7 @@ Matrix<T>::Matrix(size_t rows, size_t cols, T fill) : Matrix(rows, cols) {
 
 template <typename T>
 Matrix<T>::Matrix(const Matrix<T>& other) {
+    cout << "Matrix copy constructor called" << endl;
     if (other.sharedData != nullptr) {
         sharedData = other.sharedData;
         sharedData->refCount++;
@@ -69,6 +73,7 @@ Matrix<T>::Matrix(const string& fileName) {
 
 template <typename T>
 Matrix<T>::~Matrix() {
+    cout << "Matrix destructor called" << endl;
     if (sharedData != nullptr && --sharedData->refCount == 0) {
         delete sharedData;
     }
@@ -160,13 +165,14 @@ inline void Matrix<T>::resize(size_t newRows, size_t newCols, T fill) {
 
 template <typename T>
 inline Matrix<T>& Matrix<T>::operator=(const Matrix<T>& other) {
+    cout << "Matrix copy assignment called" << endl;
+    if (sharedData != nullptr) {
+        sharedData->refCount--;
+        if (sharedData->refCount == 0) delete sharedData;
+    }
     if (other.sharedData == nullptr) {
         MAKE_NONE
     } else if (this != &other || sharedData != other.sharedData) {
-        if (sharedData != nullptr) {
-            sharedData->refCount--;
-            if (sharedData->refCount == 0) delete sharedData;
-        }
         sharedData = other.sharedData;
         sharedData->refCount++;
         m_data = other.m_data;
@@ -220,7 +226,8 @@ inline Matrix<T> Matrix<T>::operator+(const Matrix<T>& other) const {
             }
         }
     }
-    return res;
+    return res; // RVO, which is a compiler optimization that eliminates the temporary object.
+    // Specifically, the object is constructed in the memory of the caller, and no copy is made.
 }
 
 template <typename T>
@@ -303,7 +310,7 @@ inline Matrix<T> Matrix<T>::operator*(const Matrix<T>& other) const {
         result.resize(m_rows, other.m_cols);
         return result;
 #undef BLOCK_SIZE
-    } else {
+    }
         Matrix<T> result(m_rows, other.m_cols, 0);
 #pragma omp parallel for
         for (size_t r = 0; r < m_rows; r++) {
@@ -314,7 +321,7 @@ inline Matrix<T> Matrix<T>::operator*(const Matrix<T>& other) const {
             }
         }
         return result;
-    }
+
 }
 
 template <typename T>

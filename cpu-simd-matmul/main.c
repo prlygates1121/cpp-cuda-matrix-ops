@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include "operation.h"
 
-#define SIZE 2048
+#define SIZE 10240
 #define WARMUP 20
 
 bool check = false;
@@ -36,7 +36,7 @@ int main() {
         fillMat(B);
         startTime = clock();
 
-        if (!matmul_improved(A, B, C)) {
+        if (!matmul_OpenBLAS(A, B, C)) {
             fprintf(stderr, "Error: \nFailed to perform No.%d computation (C).\n", i);
             freeMat(&A);
             freeMat(&B);
