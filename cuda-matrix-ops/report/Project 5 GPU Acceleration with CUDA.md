@@ -146,7 +146,7 @@ const int y = threadIdx.y + blockIdx.y * blockDim.y;
 
 This picture shows how a thread is located in 2-D representation. We find that it perfect matches the layout of a matrix.
 
-![image-20240602174549974](D:\Blue\C++\CS205-2024-Spring-Projects\Project5\report\threadsAlignment.png)
+![image-20240602174549974](./threadsAlignment.png)
 
 []: http://users.wfu.edu/choss/CUDA/docs/Lecture%205.pdf
 
@@ -215,7 +215,7 @@ However, in our method:
 
 Therefore, this method does not meet the requirement for coalesced access.
 
-![image-20240602121230297](D:\Blue\C++\CS205-2024-Spring-Projects\Project5\report\Naive.png)
+![image-20240602121230297](./Naive.png)
 
 
 
@@ -246,7 +246,7 @@ Here, in `rhs[i * c + x]`, threads with x = 0, 1, 2 ... that are in the same war
 - For B matrix, a warp of threads **only need to load once** for each `i` because they are accessing contiguous memory at the same time.
 - A matrix looks really nice. Threads in a warp can make even better use of their shared memory.
 
-![image-20240602122300164](D:\Blue\C++\CS205-2024-Spring-Projects\Project5\report\Coalesce.png)
+![image-20240602122300164](./Coalesce.png)
 
 
 
@@ -301,11 +301,11 @@ This tiling method enhances access pattern even more, because:
 
   Yet in the traditional methods, threads that work together need to span many rows or columns, and **shared memory** is often too small to be used.
 
-  ![image-20240602150832310](D:\Blue\C++\CS205-2024-Spring-Projects\Project5\report\CUDAMemoryModel.png)
+  ![image-20240602150832310](./CUDAMemoryModel.png)
 
   [David B. Kirk, Wen Mei W. Hwu]: https://safari.ethz.ch/architecture/fall2019/lib/exe/fetch.php?media=2013_programming_massively_parallel_processors_a_hands-on_approach_2nd.pdf	"p98"
 
-- I made local copies of all the frequently used indices like `blockIdx.x` and `threadIdx.x`. These copies are `automatic variables` in CUDA, placed in the registers. Accessing these variables is extremely fast and parallel, so long as the register is is big enough to accommodate them.![image-20240602150219332](D:\Blue\C++\CS205-2024-Spring-Projects\Project5\report\CUDAVariableTypes.png)
+- I made local copies of all the frequently used indices like `blockIdx.x` and `threadIdx.x`. These copies are `automatic variables` in CUDA, placed in the registers. Accessing these variables is extremely fast and parallel, so long as the register is is big enough to accommodate them.![image-20240602150219332](./CUDAVariableTypes.png)
 
 [David B. Kirk, Wen Mei W. Hwu]: https://safari.ethz.ch/architecture/fall2019/lib/exe/fetch.php?media=2013_programming_massively_parallel_processors_a_hands-on_approach_2nd.pdf	"p102"
 
@@ -313,7 +313,7 @@ The implementation of this method is rather tricky (harder than the tiling metho
 
 
 
-![image-20240602142429679](D:\Blue\C++\CS205-2024-Spring-Projects\Project5\report\sharedMemory.png)
+![image-20240602142429679](./sharedMemory.png)
 
 #### 4. Tiling Inside Shared Memory
 
@@ -377,15 +377,15 @@ It should also be noted that, while we could alternatively cut the blockDim.x by
 
 10240 * 10240:
 
-![image-20240602233629115](D:\Blue\C++\CS205-2024-Spring-Projects\Project5\report\10240.png)
+![image-20240602233629115](./10240.png)
 
 5120 * 5120:
 
-![image-20240602233743362](D:\Blue\C++\CS205-2024-Spring-Projects\Project5\report\5120.png)
+![image-20240602233743362](./5120.png)
 
 2560 * 2560:
 
-![image-20240602233947300](D:\Blue\C++\CS205-2024-Spring-Projects\Project5\report\2560.png)
+![image-20240602233947300](./2560.png)
 
 OpenBLAS:
 
@@ -448,7 +448,7 @@ The commented-out codes were the ones that I initially used, and they ended up p
 
 After googling, I learned that cuBLAS assumes column-major matrices by default, yet every matrix I used was row-major.
 
-![](D:\Blue\C++\CS205-2024-Spring-Projects\Project5\report\New Bitmap image.bmp)
+![](./New Bitmap image.bmp)
 
 [Cmglee]: https://commons.wikimedia.org/w/index.php?curid=65107030
 

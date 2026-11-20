@@ -793,7 +793,7 @@ int main() {
 }
 ```
 
-![](D:\Blue\C++\CS205-2024-Spring-Projects\Project4\report\correctness.bmp)
+![](./correctness.bmp)
 
 #### Performance
 
@@ -822,7 +822,7 @@ int main() {
 }
 ```
 
-<img src="D:\Blue\C++\CS205-2024-Spring-Projects\Project4\report\performance.bmp" style="zoom: 67%;" />
+<img src="./performance.bmp" style="zoom: 67%;" />
 
 ---
 
@@ -834,11 +834,11 @@ No exception is meant to be thrown. No OpenMP enabled to prevent incompatibility
 
 **Test 1** (about addition & blocked multiplication ...) :
 
-![](D:\Blue\C++\CS205-2024-Spring-Projects\Project4\report\valgrind1.bmp)
+![](./valgrind1.bmp)
 
 **Test 2** (about copy assignment, copy constructor, ROI, resize, detach, clone ...) :
 
-![](D:\Blue\C++\CS205-2024-Spring-Projects\Project4\report\valgrind2.bmp)
+![](./valgrind2.bmp)
 
 ## Difficulty & Solutions
 

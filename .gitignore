@@ -1,0 +1,59 @@
+# CMake / CLion build directories
+cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+build/
+Testing/
+_deps/
+
+# Visual Studio / MSVC build artifacts
+.vs/
+x64/
+x86/
+Debug/
+Release/
+*.vcxproj.user
+*.suo
+*.user
+*.ipch
+*.aps
+*.ncb
+*.opendb
+*.opensdf
+*.sdf
+*.cachefile
+*.VC.db
+*.VC.opendb
+*.tlog
+*.log
+*.lastbuildstate
+*.recipe
+
+# JetBrains IDEs
+.idea/
+*.iml
+
+# Compiled binaries, objects, libraries, and debug symbols
+*.exe
+*.out
+*.app
+*.o
+*.obj
+*.a
+*.lib
+*.dll
+*.so
+*.dylib
+*.exp
+*.pdb
+*.ilk
+*.idb
+
+# OS / Editor temporary files
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.swp
+*.swo
+*~
